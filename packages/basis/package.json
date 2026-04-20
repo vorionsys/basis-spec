@@ -1,0 +1,59 @@
+{
+  "name": "@basis-spec/basis",
+  "version": "1.0.0",
+  "description": "BASIS — open standard for AI agent trust and governance. Canonical parameters, formulas, and types.",
+  "keywords": [
+    "ai",
+    "agent",
+    "governance",
+    "trust",
+    "safety",
+    "standard",
+    "basis",
+    "interop"
+  ],
+  "homepage": "https://github.com/vorionsys/basis-spec",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorionsys/basis-spec.git",
+    "directory": "packages/basis"
+  },
+  "bugs": "https://github.com/vorionsys/basis-spec/issues",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

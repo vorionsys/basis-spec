@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://basis-spec.org/schemas/bot-package-manifest/v1.json",
+  "title": "BASIS Bot Package Manifest v1",
+  "description": "Canonical declarative format for a BASIS-compliant agent/bot package. See RFC-0001.",
+  "type": "object",
+  "required": ["basis_manifest_version", "identity", "tier", "capabilities", "policy", "governance", "runtime", "lifecycle", "ui"],
+  "additionalProperties": false,
+  "properties": {
+    "basis_manifest_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "identity": {
+      "type": "object",
+      "required": ["id", "namespace", "name", "version", "license", "author", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$" },
+        "namespace": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$" },
+        "license": { "type": "string" },
+        "author": { "type": "string", "minLength": 1 },
+        "homepage": { "type": "string", "format": "uri" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "tier": {
+      "type": "object",
+      "required": ["required_runtime_tier", "starting_trust_score", "max_earnable_tier", "inherits_operator_tier"],
+      "additionalProperties": false,
+      "properties": {
+        "required_runtime_tier": { "type": "integer", "minimum": 0, "maximum": 7 },
+        "starting_trust_score": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "max_earnable_tier": { "type": "integer", "minimum": 0, "maximum": 7 },
+        "inherits_operator_tier": { "type": "boolean" }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["tools", "data_scopes", "api_endpoints", "certified_models"],
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "risk_level"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+              "risk_level": {
+                "type": "string",
+                "enum": ["READ", "LOW", "MEDIUM", "HIGH", "CRITICAL", "LIFE_CRITICAL"]
+              },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "data_scopes": {
+          "type": "object",
+          "required": ["reads", "writes"],
+          "additionalProperties": false,
+          "properties": {
+            "reads": { "type": "array", "items": { "type": "string" } },
+            "writes": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "api_endpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host", "methods"],
+            "additionalProperties": false,
+            "properties": {
+              "host": { "type": "string" },
+              "methods": { "type": "array", "items": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] } }
+            }
+          }
+        },
+        "certified_models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["provider", "model"],
+            "additionalProperties": false,
+            "properties": {
+              "provider": { "type": "string" },
+              "model": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["max_action_risk_level", "gating", "escalation", "circuit_breaker", "kill_switch"],
+      "additionalProperties": false,
+      "properties": {
+        "max_action_risk_level": {
+          "type": "string",
+          "enum": ["READ", "LOW", "MEDIUM", "HIGH", "CRITICAL", "LIFE_CRITICAL"]
+        },
+        "gating": {
+          "type": "object",
+          "required": ["pre_action"],
+          "additionalProperties": false,
+          "properties": {
+            "pre_action": { "type": "boolean" },
+            "rate_limits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["scope"],
+                "additionalProperties": false,
+                "properties": {
+                  "scope": { "type": "string" },
+                  "max_per_minute": { "type": "integer", "minimum": 1 },
+                  "max_per_hour": { "type": "integer", "minimum": 1 },
+                  "max_per_day": { "type": "integer", "minimum": 1 }
+                }
+              }
+            },
+            "blocked_tools": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "escalation": {
+          "type": "object",
+          "required": ["enabled"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "route_to": { "type": ["string", "null"] }
+          }
+        },
+        "circuit_breaker": {
+          "type": "object",
+          "required": ["trust_below"],
+          "additionalProperties": false,
+          "properties": {
+            "trust_below": { "type": "integer", "minimum": 0 },
+            "error_rate_window_minutes": { "type": "integer", "minimum": 1 },
+            "error_rate_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "kill_switch": {
+          "type": "object",
+          "required": ["user_pausable", "operator_pausable"],
+          "additionalProperties": false,
+          "properties": {
+            "user_pausable": { "type": "boolean" },
+            "operator_pausable": { "type": "boolean" },
+            "self_pause_on_anomaly": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "required": ["attestation", "paramesphere", "proof_chain", "signed_actions"],
+      "additionalProperties": false,
+      "properties": {
+        "attestation": {
+          "type": "object",
+          "required": ["issuer", "signing_key_id"],
+          "additionalProperties": false,
+          "properties": {
+            "issuer": { "type": "string" },
+            "signing_key_id": { "type": "string" },
+            "signed_at": { "type": ["string", "null"], "format": "date-time" },
+            "signature": { "type": ["string", "null"] }
+          }
+        },
+        "paramesphere": {
+          "type": "object",
+          "required": ["reference_workload"],
+          "additionalProperties": false,
+          "properties": {
+            "fingerprint": { "type": ["string", "null"] },
+            "reference_workload": { "type": "string" }
+          }
+        },
+        "proof_chain": {
+          "type": "object",
+          "required": ["enabled", "audit_level"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "audit_level": { "type": "string", "enum": ["basic", "full", "attested"] }
+          }
+        },
+        "signed_actions": {
+          "type": "object",
+          "required": ["min_risk_level_requiring_signature"],
+          "additionalProperties": false,
+          "properties": {
+            "min_risk_level_requiring_signature": {
+              "type": "string",
+              "enum": ["READ", "LOW", "MEDIUM", "HIGH", "CRITICAL", "LIFE_CRITICAL"]
+            }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["framework", "entry_point", "dependencies"],
+      "additionalProperties": false,
+      "properties": {
+        "framework": { "type": "string", "enum": ["langgraph", "crewai", "autogen", "custom"] },
+        "governance_adapter_module": { "type": "string" },
+        "entry_point": { "type": "string" },
+        "runtime_version": { "type": "string" },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "required_env": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "required"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "required": { "type": "boolean" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "required": ["provisioning", "dormancy", "vanquish_triggers"],
+      "additionalProperties": false,
+      "properties": {
+        "provisioning": {
+          "type": "object",
+          "required": ["behavior"],
+          "additionalProperties": false,
+          "properties": {
+            "behavior": { "type": "string", "enum": ["training-course", "auto-promote", "manual-review"] },
+            "reach_tier_at": { "type": "integer", "minimum": 0, "maximum": 7 }
+          }
+        },
+        "dormancy": {
+          "type": "object",
+          "required": ["deduction_enabled"],
+          "additionalProperties": false,
+          "properties": {
+            "deduction_enabled": { "type": "boolean" },
+            "notify_user_at_days": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+          }
+        },
+        "vanquish_triggers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "consecutive_critical_failures": { "type": "integer", "minimum": 1 },
+            "trust_below_100_for_days": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": true,
+            "properties": {
+              "name": { "type": "string" },
+              "alignment": { "type": "string", "enum": ["full", "partial", "untested"] },
+              "article_52_risk_tier": { "type": "string", "enum": ["high", "limited", "minimal", "prohibited"] },
+              "notes": { "type": "string" }
+            }
+          }
+        },
+        "data_handling": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "personal_data": { "type": "boolean" },
+            "pii_categories": { "type": "array", "items": { "type": "string" } },
+            "retention_days": { "type": "integer", "minimum": 0 },
+            "deletion_api": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "required": ["category", "short_description", "pricing"],
+      "additionalProperties": false,
+      "properties": {
+        "category": { "type": "string", "enum": ["personal", "business", "enterprise", "vertical"] },
+        "vertical": { "type": ["string", "null"] },
+        "short_description": { "type": "string", "maxLength": 240 },
+        "long_description_md": { "type": "string" },
+        "icon": { "type": "string" },
+        "screenshots": { "type": "array", "items": { "type": "string" } },
+        "pricing": {
+          "type": "object",
+          "required": ["model", "tiers"],
+          "additionalProperties": false,
+          "properties": {
+            "model": { "type": "string", "enum": ["one-time", "subscription", "usage"] },
+            "tiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "additionalProperties": true,
+                "properties": {
+                  "name": { "type": "string" },
+                  "price_usd": { "type": "number", "minimum": 0 },
+                  "price_usd_per_month": { "type": "number", "minimum": 0 },
+                  "price_usd_per_year": { "type": "number", "minimum": 0 },
+                  "price_usd_per_execution": { "type": "number", "minimum": 0 },
+                  "limits": { "type": "object", "additionalProperties": true }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

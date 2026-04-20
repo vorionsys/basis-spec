@@ -1,0 +1,150 @@
+# Reference manifest — Aurais Market Scout v1.0.0
+# Conforms to RFC-0001 / schema 0001-bot-package-manifest.schema.json
+basis_manifest_version: "1.0"
+
+identity:
+  id: "aurais-market-scout"
+  namespace: "vorion-llc"
+  name: "Aurais Market Scout"
+  version: "1.0.0"
+  license: "UNLICENSED"
+  author: "Vorion LLC"
+  homepage: "https://aurais.net/bots/market-scout"
+  created_at: "2026-04-15T12:00:00Z"
+
+tier:
+  required_runtime_tier: 3
+  starting_trust_score: 0
+  max_earnable_tier: 4
+  inherits_operator_tier: false
+
+capabilities:
+  tools:
+    - name: "fetch_market_data"
+      risk_level: "READ"
+      description: "Pulls public price/volume data from market-data APIs"
+    - name: "compute_indicators"
+      risk_level: "READ"
+      description: "Runs RSI/MACD/SMA calculations locally"
+    - name: "send_notification"
+      risk_level: "LOW"
+      description: "Sends email/push to the user's registered address"
+  data_scopes:
+    reads:
+      - "market:public-quotes"
+      - "user:watchlist"
+      - "user:alert-preferences"
+    writes:
+      - "user:briefings"
+  api_endpoints:
+    - host: "www.alphavantage.co"
+      methods: ["GET"]
+    - host: "finance.yahoo.com"
+      methods: ["GET"]
+  certified_models:
+    - provider: "anthropic"
+      model: "claude-sonnet-4-5"
+    - provider: "anthropic"
+      model: "claude-opus-4-5"
+
+policy:
+  max_action_risk_level: "LOW"
+  gating:
+    pre_action: true
+    rate_limits:
+      - scope: "send_notification"
+        max_per_hour: 20
+      - scope: "fetch_market_data"
+        max_per_minute: 30
+    blocked_tools: []
+  escalation:
+    enabled: false
+    route_to: null
+  circuit_breaker:
+    trust_below: 100
+    error_rate_window_minutes: 10
+    error_rate_threshold: 0.25
+  kill_switch:
+    user_pausable: true
+    operator_pausable: true
+    self_pause_on_anomaly: true
+
+governance:
+  attestation:
+    issuer: "Vorion LLC"
+    signing_key_id: "vorion-root-2026-01"
+    signed_at: null
+    signature: null
+  paramesphere:
+    fingerprint: null
+    reference_workload: "market-scout-reference-v1"
+  proof_chain:
+    enabled: true
+    audit_level: "full"
+  signed_actions:
+    min_risk_level_requiring_signature: "LOW"
+
+runtime:
+  framework: "custom"
+  entry_point: "spike.py"
+  runtime_version: ">=0.1.0"
+  dependencies:
+    python: ">=3.11"
+    packages:
+      - "anthropic>=0.40.0"
+      - "yfinance>=0.2.40"
+      - "pandas>=2.2.0"
+  required_env:
+    - name: "ANTHROPIC_API_KEY"
+      required: true
+      description: "Operator's LLM API key"
+
+lifecycle:
+  provisioning:
+    behavior: "training-course"
+    reach_tier_at: 1
+  dormancy:
+    deduction_enabled: true
+    notify_user_at_days: [7, 28]
+  vanquish_triggers:
+    consecutive_critical_failures: 3
+    trust_below_100_for_days: 14
+
+compliance:
+  frameworks:
+    - name: "NIST AI-RMF 1.0"
+      alignment: "partial"
+      notes: "Read-only scope limits most high-risk practice statements."
+    - name: "EU AI Act"
+      article_52_risk_tier: "limited"
+      notes: "Generic market analysis is not personalized advice."
+  data_handling:
+    personal_data: false
+    pii_categories: []
+    retention_days: 90
+    deletion_api: "DELETE /api/user/briefings"
+
+ui:
+  category: "personal"
+  vertical: null
+  short_description: "Daily market briefing for up to 20 tickers, with signal-driven alerts."
+  long_description_md: "docs/description.md"
+  icon: "assets/icon.svg"
+  screenshots:
+    - "assets/screenshots/briefing.png"
+    - "assets/screenshots/alerts.png"
+  pricing:
+    model: "subscription"
+    tiers:
+      - name: "Free"
+        price_usd: 0
+        limits:
+          watchlist_size: 3
+      - name: "Personal"
+        price_usd_per_month: 19
+        limits:
+          watchlist_size: 20
+      - name: "Plus"
+        price_usd_per_month: 49
+        limits:
+          watchlist_size: -1

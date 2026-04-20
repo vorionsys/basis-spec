@@ -1,0 +1,19 @@
+{
+  "name": "basis-spec-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "BASIS — Baseline Authority for Safe & Interoperable Systems. Open standard for AI agent trust and governance.",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "publish:all": "echo 'Publish each package individually after review: cd packages/basis && npm publish --access public'"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
