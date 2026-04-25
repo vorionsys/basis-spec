@@ -15,6 +15,7 @@
 |---|---|---|
 | [0001](rfcs/0001-bot-package-manifest.md) | Bot Package Manifest v1 | Draft |
 | [0002](rfcs/0002-proof-event-chain.md) | Proof Event Chain v1 — the public shape of every audit event a BASIS-compliant runtime emits, plus the hash-chain rules that make it tamper-evident. | Draft |
+| [0003](rfcs/0003-conformance-attestation.md) | Conformance Attestation v1 — signed scorecard each BASIS-compliant product publishes per release. JSON Schema at [`schemas/attestation-v1.json`](schemas/attestation-v1.json). | Draft |
 
 ## Why an open standard
 

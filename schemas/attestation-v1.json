@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://basis.vorion.org/schemas/attestation-v1.json",
+  "title": "BASIS Conformance Attestation v1",
+  "description": "Signed scorecard a BASIS-compliant product publishes per release. See rfcs/0003-conformance-attestation.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "attestationVersion",
+    "product",
+    "version",
+    "releasedAt",
+    "conformanceSuite",
+    "results",
+    "signature",
+    "signedBy",
+    "signedAt"
+  ],
+  "properties": {
+    "attestationVersion": {
+      "description": "Version of this attestation format spec. Currently 1.",
+      "const": 1
+    },
+    "product": {
+      "description": "Human-readable product name.",
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "description": "Semver version string for the product release being attested.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$"
+    },
+    "releasedAt": {
+      "description": "ISO 8601 timestamp of the product release.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "conformanceSuite": {
+      "description": "The conformance suite this product was tested against.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "revision"],
+      "properties": {
+        "name": {
+          "description": "Package or repo name of the suite (e.g. '@vorionsys/basis-conformance').",
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "description": "Semver version of the suite.",
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "description": "Exact git sha (or other immutable revision id) of the suite source. Lets verifiers reproduce results byte-for-byte.",
+          "type": "string",
+          "minLength": 7
+        },
+        "source": {
+          "description": "Optional URL where the suite source can be fetched.",
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "results": {
+      "description": "Aggregate test results plus optional per-test details.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "failed", "skipped", "total"],
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "details": {
+          "description": "Per-test outcomes. Required when failed > 0; recommended always.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "status"],
+            "properties": {
+              "id": {
+                "description": "Stable test identifier from the suite. Format defined by the suite (e.g. 'tier-transition.t0-t1').",
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": ["passed", "failed", "skipped"]
+              },
+              "durationMs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "reason": {
+                "description": "Required when status is 'skipped' or 'failed'. Human-readable explanation.",
+                "type": "string"
+              },
+              "specRef": {
+                "description": "Optional citation to the RFC section the test exercises (e.g. 'RFC-0002§hash-semantics').",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "signature": {
+      "description": "Detached Ed25519 signature over the canonical JSON of every other field. Base64url-encoded, no padding.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 64
+    },
+    "signedBy": {
+      "description": "Signer identifier — DID, key fingerprint, or other resolvable id. Verifiers fetch the public key by this id out-of-band.",
+      "type": "string",
+      "minLength": 1
+    },
+    "signedAt": {
+      "description": "ISO 8601 timestamp of signing.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked": {
+      "description": "True iff this attestation has been revoked. When true, revokedAt and revokedReason are required.",
+      "type": "boolean"
+    },
+    "revokedAt": {
+      "description": "ISO 8601 of revocation. Required when revoked is true.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "revokedReason": {
+      "description": "Human-readable reason for revocation. Required when revoked is true.",
+      "type": "string",
+      "minLength": 1
+    },
+    "supersededBy": {
+      "description": "Optional version string of the release that supersedes this one (in case of revocation).",
+      "type": "string"
+    },
+    "thirdParty": {
+      "description": "True iff this attestation was produced by a party other than the product vendor (e.g. an external auditor).",
+      "type": "boolean"
+    },
+    "vendorAttestation": {
+      "description": "When thirdParty is true, the URL of the original vendor attestation this third-party attestation cross-checks.",
+      "type": "string",
+      "format": "uri"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "revoked": { "const": true } }, "required": ["revoked"] },
+      "then": {
+        "required": ["revokedAt", "revokedReason"]
+      }
+    },
+    {
+      "if": { "properties": { "thirdParty": { "const": true } }, "required": ["thirdParty"] },
+      "then": {
+        "required": ["vendorAttestation"]
+      }
+    }
+  ]
+}

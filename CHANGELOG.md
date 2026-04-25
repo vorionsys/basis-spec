@@ -2,6 +2,13 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Repo-level — 2026-04-25
+
+### Added
+- **RFC-0003: Conformance Attestation v1** — defines the signed scorecard each BASIS-compliant product publishes at `https://<product>.example/attestations/<product>-<version>.json`. Decouples "we conform" from "trust us" by making the claim machine-verifiable.
+- `schemas/attestation-v1.json` — strict JSON Schema for the attestation document. Anyone can validate any vendor's attestation file with stock Ajv, no Vorion tooling required.
+- `schemas/README.md` — usage doc for the JSON Schema artifacts.
+
 ## [@basis-spec/basis@1.1.0] — 2026-04-25
 
 ### Added
