@@ -7,3 +7,4 @@
 
 export * from './canonical.js';
 export * from './types.js';
+export * from './proof-chain.js';

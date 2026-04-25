@@ -55,3 +55,15 @@ export const GateDecisionSchema = z.object({
 
 export type AgentTrustState = z.infer<typeof AgentTrustStateSchema>;
 export type GateDecision = z.infer<typeof GateDecisionSchema>;
+
+// Proof-chain validators (RFC-0002). Re-exported here so consumers
+// can import everything Zod-related from a single entry point:
+//   `import { ProofEventSchema } from '@basis-spec/basis/zod';`
+export {
+  ProofEventSchema,
+  ProofEventPayloadSchema,
+  ProofEventFilterSchema,
+  ChainVerificationResultSchema,
+  LogProofEventRequestSchema,
+  ProofEventSummarySchema,
+} from './proof-chain-schema.js';

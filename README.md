@@ -6,8 +6,15 @@
 
 | Package | Description |
 |---|---|
-| [`@basis-spec/basis`](packages/basis) | Canonical TypeScript representation of the spec — tiers, risk levels, formulas, constants, types, optional Zod validators. |
+| [`@basis-spec/basis`](packages/basis) | Canonical TypeScript representation of the spec — tiers, risk levels, formulas, constants, types, optional Zod validators, **proof-chain shape**. |
 | [`@basis-spec/basis-conformance`](packages/basis-conformance) | Test vectors any implementation can run against itself to verify BASIS conformance. *(stub — coming next)* |
+
+## RFCs
+
+| # | Title | Status |
+|---|---|---|
+| [0001](rfcs/0001-bot-package-manifest.md) | Bot Package Manifest v1 | Draft |
+| [0002](rfcs/0002-proof-event-chain.md) | Proof Event Chain v1 — the public shape of every audit event a BASIS-compliant runtime emits, plus the hash-chain rules that make it tamper-evident. | Draft |
 
 ## Why an open standard
 
