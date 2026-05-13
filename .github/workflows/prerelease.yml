@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: Apache-2.0
+# Pre-release publish for @vorionsys/basis (and any future shared workspace package).
+# Operationalizes umbrella U1 — pre-publish sharing path must be backed by real CI,
+# not "Slack DM with a tarball." Triggered manually from a feature branch; publishes
+# `<version>-rc.<short-sha>` to npm with the `next` dist-tag, gated by the same
+# build/leak-check/test chain as a regular release.
+#
+# Decided in ADR-0001 (vorion-governance/adrs/0001-realities-adoption.md), Q3=B.
+
+name: prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Feature branch to publish a pre-release from
+        required: true
+        type: string
+      package:
+        description: Workspace package directory under packages/ (e.g. "basis" or "basis-conformance")
+        required: true
+        type: choice
+        default: basis
+        options:
+          - basis
+          - basis-conformance
+      dry_run:
+        description: Skip the actual npm publish (build + test only)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write   # for npm provenance
+
+jobs:
+  prerelease:
+    name: Build, test, publish pre-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PACKAGE_DIR: packages/${{ inputs.package }}
+
+    steps:
+      - name: Checkout requested branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0    # full history so short-sha is stable
+
+      - name: Setup Node 22 + npm registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          always-auth: true
+
+      - name: Install dependencies (clean)
+        run: npm ci
+
+      - name: Build workspace
+        run: npm run build --workspaces --if-present
+
+      - name: Leak-check (must pass before publish)
+        run: |
+          if [ -f "$PACKAGE_DIR/package.json" ] && jq -e '.scripts."leak-check"' "$PACKAGE_DIR/package.json" > /dev/null; then
+            npm run leak-check --workspace="$PACKAGE_DIR"
+          elif [ -f "package.json" ] && jq -e '.scripts."leak-check"' package.json > /dev/null; then
+            npm run leak-check
+          else
+            echo "::error::No leak-check script found at workspace or package root. Add one before pre-releasing."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: npm run test --workspace="$PACKAGE_DIR"
+
+      - name: Compute pre-release version
+        id: version
+        run: |
+          set -euo pipefail
+          cd "$PACKAGE_DIR"
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(git rev-parse --short=8 HEAD)
+          PRERELEASE_VERSION="${BASE_VERSION}-rc.${SHORT_SHA}"
+          echo "base=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "::notice::Pre-release version: $PRERELEASE_VERSION"
+
+      - name: Apply pre-release version (no git tag)
+        run: |
+          cd "$PACKAGE_DIR"
+          npm version "${{ steps.version.outputs.prerelease }}" --no-git-tag-version --allow-same-version
+
+      - name: Verify package contents (npm pack --dry-run)
+        run: |
+          cd "$PACKAGE_DIR"
+          npm pack --dry-run
+
+      - name: Publish pre-release (dry-run)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          cd "$PACKAGE_DIR"
+          echo "::notice::Dry run requested — skipping npm publish."
+          npm publish --tag next --access public --dry-run --provenance
+
+      - name: Publish pre-release
+        if: ${{ inputs.dry_run != true }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+        run: |
+          cd "$PACKAGE_DIR"
+          npm publish --tag next --access public --provenance
+
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo "### Pre-release summary"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Branch | \`${{ inputs.branch }}\` |"
+            echo "| Package | \`${{ inputs.package }}\` |"
+            echo "| Base version | \`${{ steps.version.outputs.base }}\` |"
+            echo "| Pre-release | \`${{ steps.version.outputs.prerelease }}\` |"
+            echo "| Short SHA | \`${{ steps.version.outputs.short_sha }}\` |"
+            echo "| Dry run | \`${{ inputs.dry_run }}\` |"
+            echo ""
+            echo "Install with:"
+            echo ""
+            echo '```bash'
+            echo "npm install @vorionsys/${{ inputs.package }}@${{ steps.version.outputs.prerelease }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
