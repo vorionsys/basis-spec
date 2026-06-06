@@ -28,6 +28,12 @@ the standard fixes parameters, formulas, and lifecycle semantics. It does
 **not** dictate which storage backend, transport protocol, or proof system
 an implementation must use.
 
+## Governance
+
+BASIS evolves through a public RFC process (this repo) governed by Vorion's umbrella realities. Backwards-compatibility within a major version, deprecation discipline, and supply-chain integrity rules are mirrored here and in CHANGELOG.md.
+
+Pre-publish sharing (`*-rc.<sha>` tags on npm) goes through the published prerelease workflow at `.github/workflows/prerelease.yml` — gated by build, leak-check, test, and provenance. Pre-release versions ship with the `next` dist-tag and are never promoted silently to `latest`.
+
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
