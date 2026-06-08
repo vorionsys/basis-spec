@@ -177,6 +177,53 @@ export const OBSERVATION_TIERS = {
 export type ObservationTier = keyof typeof OBSERVATION_TIERS;
 
 // ---------------------------------------------------------------------------
+// Trust factors (16 core factors)
+//
+// The dimensions along which trust is earned. Each factor becomes REQUIRED
+// from a given tier onward, so higher tiers demand evidence across more of
+// them. Grouped (Foundation, Security, Agency, Maturity, Evolution) and
+// weighted (Foundational, Operational, Sophisticated). Factor codes are
+// stable identifiers and MUST NOT be renumbered.
+// ---------------------------------------------------------------------------
+
+export interface TrustFactorSpec {
+  readonly name: string;
+  readonly group: 'Foundation' | 'Security' | 'Agency' | 'Maturity' | 'Evolution';
+  readonly weight: 'Foundational' | 'Operational' | 'Sophisticated';
+  /** Tier from which this factor becomes required. */
+  readonly requiredFrom: TrustTier;
+}
+
+export const TRUST_FACTORS = {
+  // Foundation / Security — required T1-T3 (9 factors)
+  'CT-COMP':    { name: 'Competence',          group: 'Foundation', weight: 'Foundational',  requiredFrom: 'T1' },
+  'CT-REL':     { name: 'Reliability',         group: 'Foundation', weight: 'Foundational',  requiredFrom: 'T1' },
+  'CT-OBS':     { name: 'Observability',       group: 'Foundation', weight: 'Foundational',  requiredFrom: 'T1' },
+  'CT-TRANS':   { name: 'Transparency',        group: 'Foundation', weight: 'Foundational',  requiredFrom: 'T2' },
+  'CT-ACCT':    { name: 'Accountability',      group: 'Foundation', weight: 'Foundational',  requiredFrom: 'T2' },
+  'CT-SAFE':    { name: 'Safety',              group: 'Foundation', weight: 'Foundational',  requiredFrom: 'T2' },
+  'CT-SEC':     { name: 'Security',            group: 'Security',   weight: 'Foundational',  requiredFrom: 'T3' },
+  'CT-PRIV':    { name: 'Privacy',             group: 'Security',   weight: 'Foundational',  requiredFrom: 'T3' },
+  'CT-ID':      { name: 'Identity',            group: 'Security',   weight: 'Foundational',  requiredFrom: 'T3' },
+
+  // Operational — required T4-T5 (4 factors)
+  'OP-HUMAN':   { name: 'Human Oversight',     group: 'Agency',     weight: 'Operational',   requiredFrom: 'T4' },
+  'OP-ALIGN':   { name: 'Alignment',           group: 'Agency',     weight: 'Operational',   requiredFrom: 'T4' },
+  'OP-CONTEXT': { name: 'Context Awareness',   group: 'Agency',     weight: 'Operational',   requiredFrom: 'T4' },
+  'OP-STEW':    { name: 'Stewardship',         group: 'Maturity',   weight: 'Operational',   requiredFrom: 'T5' },
+
+  // Sophisticated — required T5-T6 (3 factors)
+  'SF-HUM':     { name: 'Humility',            group: 'Maturity',   weight: 'Sophisticated', requiredFrom: 'T5' },
+  'SF-ADAPT':   { name: 'Adaptability',        group: 'Evolution',  weight: 'Sophisticated', requiredFrom: 'T6' },
+  'SF-LEARN':   { name: 'Continuous Learning', group: 'Evolution',  weight: 'Sophisticated', requiredFrom: 'T6' },
+} as const satisfies Record<string, TrustFactorSpec>;
+
+export type TrustFactorId = keyof typeof TRUST_FACTORS;
+
+/** Total number of core trust factors. */
+export const TOTAL_CORE_FACTORS = 16;
+
+// ---------------------------------------------------------------------------
 // Hysteresis (per-tier demotion buffers)
 //
 // Wider at low tiers (new agents fluctuate), tighter at high tiers
