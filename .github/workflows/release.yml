@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: Apache-2.0
+# Stable `latest` release for @basis-spec/basis, published tokenlessly via npm
+# trusted publishing (OIDC) with a Sigstore provenance attestation — no
+# NPM_TOKEN is stored anywhere. Triggered by pushing a `v*` tag (e.g. v1.2.0).
+#
+# This is the `latest`-channel counterpart to prerelease.yml (which publishes
+# `*-rc.<sha>` to the `next` tag). The monorepo root is private; only the
+# workspace package under packages/basis is published.
+#
+# Prerequisite: the npm trusted publisher for @basis-spec/basis must be bound
+# (npmjs.com -> package Settings -> Trusted Publisher -> GitHub Actions:
+#  org vorionsys, repo basis-spec, workflow release.yml, environment blank).
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Workspace package directory under packages/ to publish
+        required: true
+        type: choice
+        default: basis
+        options:
+          - basis
+
+permissions:
+  contents: read
+  id-token: write   # for npm provenance (tokenless OIDC trusted publishing)
+
+jobs:
+  publish:
+    name: Build, gate, publish @basis-spec/basis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PACKAGE_DIR: packages/${{ github.event_name == 'workflow_dispatch' && inputs.package || 'basis' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm (trusted publishing requires npm >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Install (clean)
+        run: npm ci
+
+      - name: Gates (typecheck + build; tests run if present)
+        run: |
+          npm run typecheck --workspaces --if-present
+          npm run build --workspaces --if-present
+          npm run test --workspaces --if-present
+
+      - name: Verify package contents
+        run: |
+          cd "$PACKAGE_DIR"
+          npm pack --dry-run
+
+      - name: Publish (tokenless OIDC, provenance)
+        run: |
+          cd "$PACKAGE_DIR"
+          npm publish --provenance --access public
