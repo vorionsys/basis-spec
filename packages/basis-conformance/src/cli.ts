@@ -3,7 +3,7 @@
 // Copyright 2024-2026 Vorion LLC
 
 /**
- * CLI for @basis-spec/basis-conformance.
+ * CLI for @vorionsys/basis-spec-conformance.
  *
  * Subcommands:
  *

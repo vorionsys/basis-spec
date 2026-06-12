@@ -9,7 +9,10 @@ All notable changes to this repository are documented here. This project follows
 - `schemas/attestation-v1.json` — strict JSON Schema for the attestation document. Anyone can validate any vendor's attestation file with stock Ajv, no Vorion tooling required.
 - `schemas/README.md` — usage doc for the JSON Schema artifacts.
 
-## [@basis-spec/basis@1.2.0] — 2026-06-08
+## [@vorionsys/basis-spec@1.2.0] — 2026-06-08
+
+### Renamed
+- **Package renamed `@basis-spec/basis` → `@vorionsys/basis-spec`** (and the conformance suite `@basis-spec/basis-conformance` → `@vorionsys/basis-spec-conformance`) before first publish — no version was ever published under the old names, so there is no consumer migration. Owner decision 2026-06-11: publish under the controlled `@vorionsys` scope rather than the separate `@basis-spec` scope. Note this package is NOT `@vorionsys/basis` — that name remains withdrawn; this is a new name per publishing rules.
 
 ### Added
 - **Canonical `TRUST_FACTORS`** — the 16 core trust factors (9 Foundation/Security `CT-*`, 4 Operational `OP-*`, 3 Sophisticated `SF-*`), ported verbatim from the assembled monolith source of record, plus `TOTAL_CORE_FACTORS = 16`. Exported from the package root via `canonical.ts`.
@@ -19,12 +22,12 @@ All notable changes to this repository are documented here. This project follows
 ### Notes
 - Non-breaking minor bump; only new exports added. This is the surface `@vorionsys/rainbow` consumes (`TRUST_FACTORS`, `TRUST_TIERS`, `OBSERVATION_TIERS`, `RISK_ACCUMULATOR`, `RISK_LEVELS`, `PENALTY_RATIO_MIN`/`MAX`).
 
-## [@basis-spec/basis@1.1.0] — 2026-04-25
+## [@vorionsys/basis-spec@1.1.0] — 2026-04-25
 
 ### Added
 - **RFC-0002: Proof Event Chain v1** — public spec for the shape of every audit event a BASIS-compliant runtime emits, plus the hash-chain semantics that make the trail tamper-evident.
 - `proof-chain.ts` — canonical TypeScript types: `ProofEvent`, 10 typed payload variants + `GenericPayload` escape hatch, `ShadowModeStatus`, `ProofEventFilter`, `ChainVerificationResult`, `LogProofEventRequest`, `ProofEventSummary`. Timestamps as ISO 8601 strings for cross-language interop.
-- `proof-chain-schema.ts` — Zod validators for all of the above. Importable from `@basis-spec/basis/zod`.
+- `proof-chain-schema.ts` — Zod validators for all of the above. Importable from `@vorionsys/basis-spec/zod`.
 - Re-exported the new types from the package entry point and the new validators from `/zod`.
 
 ### Why

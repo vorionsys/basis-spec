@@ -2,7 +2,7 @@
 
 Standalone JSON Schema documents for parts of the BASIS spec that need
 machine-validatable formats independent of the TypeScript / Zod surface
-in `@basis-spec/basis`.
+in `@vorionsys/basis-spec`.
 
 | File | RFC | Purpose |
 |---|---|---|
@@ -17,7 +17,8 @@ npm install ajv
 ```js
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import schema from '@basis-spec/basis-spec/schemas/attestation-v1.json' with { type: 'json' };
+// schemas/ ships in this repository (vorionsys/basis-spec), not in the npm package
+import schema from './schemas/attestation-v1.json' with { type: 'json' };
 
 const ajv = new Ajv({ strict: false });
 addFormats(ajv);

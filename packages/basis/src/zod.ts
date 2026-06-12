@@ -1,7 +1,7 @@
 /**
  * BASIS — Zod validators for runtime conformance checks.
  *
- * Importing from `@basis-spec/basis/zod` is optional. Implementations that
+ * Importing from `@vorionsys/basis-spec/zod` is optional. Implementations that
  * already have their own validation layer can use the canonical constants
  * and types directly without pulling in the Zod dependency at runtime.
  */
@@ -58,7 +58,7 @@ export type GateDecision = z.infer<typeof GateDecisionSchema>;
 
 // Proof-chain validators (RFC-0002). Re-exported here so consumers
 // can import everything Zod-related from a single entry point:
-//   `import { ProofEventSchema } from '@basis-spec/basis/zod';`
+//   `import { ProofEventSchema } from '@vorionsys/basis-spec/zod';`
 export {
   ProofEventSchema,
   ProofEventPayloadSchema,

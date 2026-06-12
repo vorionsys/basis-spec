@@ -25,7 +25,7 @@ import {
   RISK_LEVELS,
   TRUST_INHERITANCE,
   BASIS_SPEC_VERSION,
-} from '@basis-spec/basis';
+} from '@vorionsys/basis-spec';
 
 describe('canonical/params: trust-score range', () => {
   it('MIN_TRUST_SCORE = 0', () => {

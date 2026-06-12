@@ -1,10 +1,10 @@
-# @basis-spec/basis
+# @vorionsys/basis-spec
 
 > **BASIS** — Baseline Authority for Safe & Interoperable Systems.
 > Open standard for AI agent trust and governance.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![npm](https://img.shields.io/npm/v/@basis-spec/basis)](https://www.npmjs.com/package/@basis-spec/basis)
+[![npm](https://img.shields.io/npm/v/@vorionsys/basis-spec)](https://www.npmjs.com/package/@vorionsys/basis-spec)
 
 This package is the canonical TypeScript representation of the BASIS spec.
 It exports the tier definitions, risk levels, formulas, and constants any
@@ -25,7 +25,7 @@ conforming implementation can rely on.
 ## Install
 
 ```bash
-npm install @basis-spec/basis
+npm install @vorionsys/basis-spec
 ```
 
 ## Use the canonical values
@@ -45,7 +45,7 @@ import {
   DORMANCY,
   LIFECYCLE_STATES,
   BASIS_SPEC_VERSION,
-} from '@basis-spec/basis';
+} from '@vorionsys/basis-spec';
 
 console.log(BASIS_SPEC_VERSION); // "1.0.0"
 ```
@@ -58,7 +58,7 @@ import {
   penaltyRatio,
   calculateGain,
   calculateLoss,
-} from '@basis-spec/basis';
+} from '@vorionsys/basis-spec';
 
 tierFromScore(750);       // "T4"
 penaltyRatio(0);          // 3
@@ -77,7 +77,7 @@ calculateLoss({ tierIndex: 4, ceiling: 900, riskMultiplier: 10 });
 import {
   AgentTrustStateSchema,
   GateDecisionSchema,
-} from '@basis-spec/basis/zod';
+} from '@vorionsys/basis-spec/zod';
 
 const result = AgentTrustStateSchema.safeParse(input);
 if (!result.success) console.error(result.error.format());
@@ -91,7 +91,7 @@ behavioural conformance (formulas, tier transitions, lifecycle invariants),
 use the companion test-vector package:
 
 ```bash
-npm install --save-dev @basis-spec/basis-conformance
+npm install --save-dev @vorionsys/basis-spec-conformance
 ```
 
 ## License

@@ -3,7 +3,7 @@
 **Status:** Draft
 **Date:** 2026-04-15
 **Author:** Vorion LLC
-**Related:** `@basis-spec/basis` canonical.ts (trust tiers, risk levels, lifecycle states)
+**Related:** `@vorionsys/basis-spec` canonical.ts (trust tiers, risk levels, lifecycle states)
 
 ---
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Stable `latest` release for @basis-spec/basis, published tokenlessly via npm
+# Stable `latest` release for @vorionsys/basis-spec, published tokenlessly via npm
 # trusted publishing (OIDC) with a Sigstore provenance attestation — no
 # NPM_TOKEN is stored anywhere. Triggered by pushing a `v*` tag (e.g. v1.2.0).
 #
@@ -7,7 +7,7 @@
 # `*-rc.<sha>` to the `next` tag). The monorepo root is private; only the
 # workspace package under packages/basis is published.
 #
-# Prerequisite: the npm trusted publisher for @basis-spec/basis must be bound
+# Prerequisite: the npm trusted publisher for @vorionsys/basis-spec must be bound
 # (npmjs.com -> package Settings -> Trusted Publisher -> GitHub Actions:
 #  org vorionsys, repo basis-spec, workflow release.yml, environment blank).
 
@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   publish:
-    name: Build, gate, publish @basis-spec/basis
+    name: Build, gate, publish @vorionsys/basis-spec
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

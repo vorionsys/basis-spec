@@ -6,8 +6,8 @@
 
 | Package | Description |
 |---|---|
-| [`@basis-spec/basis`](packages/basis) | Canonical TypeScript representation of the spec — tiers, risk levels, formulas, constants, types, optional Zod validators, **proof-chain shape**. |
-| [`@basis-spec/basis-conformance`](packages/basis-conformance) | Test vectors any implementation can run against itself to verify BASIS conformance. *(stub — coming next)* |
+| [`@vorionsys/basis-spec`](packages/basis) | Canonical TypeScript representation of the spec — tiers, risk levels, formulas, constants, types, optional Zod validators, **proof-chain shape**. |
+| [`@vorionsys/basis-spec-conformance`](packages/basis-conformance) | Test vectors any implementation can run against itself to verify BASIS conformance. *(stub — coming next)* |
 
 ## RFCs
 
