@@ -9,6 +9,16 @@ All notable changes to this repository are documented here. This project follows
 - `schemas/attestation-v1.json` — strict JSON Schema for the attestation document. Anyone can validate any vendor's attestation file with stock Ajv, no Vorion tooling required.
 - `schemas/README.md` — usage doc for the JSON Schema artifacts.
 
+## [@basis-spec/basis@1.2.0] — 2026-06-08
+
+### Added
+- **Canonical `TRUST_FACTORS`** — the 16 core trust factors (9 Foundation/Security `CT-*`, 4 Operational `OP-*`, 3 Sophisticated `SF-*`), ported verbatim from the assembled monolith source of record, plus `TOTAL_CORE_FACTORS = 16`. Exported from the package root via `canonical.ts`.
+- `.github/workflows/release.yml` — tokenless OIDC `latest` release workflow (`v*` tag → gates → `npm publish --provenance` of `packages/basis`). No npm token is stored in CI.
+- `LICENSE` now ships inside the `packages/basis` tarball (the `files` array already listed it, but the file lived only at the repo root, so published artifacts would have carried no license text).
+
+### Notes
+- Non-breaking minor bump; only new exports added. This is the surface `@vorionsys/rainbow` consumes (`TRUST_FACTORS`, `TRUST_TIERS`, `OBSERVATION_TIERS`, `RISK_ACCUMULATOR`, `RISK_LEVELS`, `PENALTY_RATIO_MIN`/`MAX`).
+
 ## [@basis-spec/basis@1.1.0] — 2026-04-25
 
 ### Added
