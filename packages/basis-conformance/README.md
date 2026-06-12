@@ -1,14 +1,14 @@
-# `@basis-spec/basis-conformance`
+# `@vorionsys/basis-spec-conformance`
 
 The official BASIS conformance test suite. Anyone — vendor, customer, auditor — can run this against the canonical spec or (in v0.2+) a live BASIS-compliant runtime endpoint and get a machine-readable report of which parts of the standard the implementation actually honors.
 
-This package is the third leg of public-trust verification, alongside [`@basis-spec/basis`](../basis) (the spec) and [RFC-0003](../../rfcs/0003-conformance-attestation.md) (the signed scorecard format).
+This package is the third leg of public-trust verification, alongside [`@vorionsys/basis-spec`](../basis) (the spec) and [RFC-0003](../../rfcs/0003-conformance-attestation.md) (the signed scorecard format).
 
 ## v0.1 — what this ships
 
 **Self-test mode only.** The suite runs against:
 
-- `@basis-spec/basis` — the canonical TypeScript representation of the spec (constants, formulas, types, Zod validators)
+- `@vorionsys/basis-spec` — the canonical TypeScript representation of the spec (constants, formulas, types, Zod validators)
 - `schemas/attestation-v1.json` — the JSON Schema for RFC-0003 attestations
 
 A passing run proves the spec is internally coherent and the canonical impl correctly implements it. It does **not** yet verify a live runtime endpoint — that's v0.2 (RFC-0004 will define the endpoints required).
@@ -45,7 +45,7 @@ The output JSON is shaped to fit directly into the `results` field of an RFC-000
 ### From code
 
 ```ts
-import { runConformance } from '@basis-spec/basis-conformance/runner';
+import { runConformance } from '@vorionsys/basis-spec-conformance/runner';
 const results = await runConformance();
 console.log(`${results.passed}/${results.total} tests passed`);
 ```

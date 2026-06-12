@@ -10,7 +10,7 @@
  * verify any vendor's exported audit log against the public contract.
  *
  * Usage:
- *   import { ProofEventSchema } from '@basis-spec/basis/zod';
+ *   import { ProofEventSchema } from '@vorionsys/basis-spec/zod';
  *   const ev = ProofEventSchema.parse(jsonFromVendor);
  *   // ev is statically typed as ProofEvent
  *

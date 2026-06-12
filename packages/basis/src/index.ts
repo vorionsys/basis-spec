@@ -1,8 +1,8 @@
 /**
- * @basis-spec/basis — entry point.
+ * @vorionsys/basis-spec — entry point.
  *
  * Re-exports the canonical spec values, helper functions, and types.
- * For Zod validators, import from "@basis-spec/basis/zod" instead.
+ * For Zod validators, import from "@vorionsys/basis-spec/zod" instead.
  */
 
 export * from './canonical.js';

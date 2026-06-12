@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ProofEventSchema } from '@basis-spec/basis/zod';
+import { ProofEventSchema } from '@vorionsys/basis-spec/zod';
 
 const validEvent = {
   eventId: '11111111-2222-3333-4444-555555555555',

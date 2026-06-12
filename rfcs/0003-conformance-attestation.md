@@ -3,7 +3,7 @@
 **Status:** Draft
 **Date:** 2026-04-25
 **Author:** Vorion LLC
-**Related:** RFC-0002 (Proof Event Chain), `@basis-spec/basis` proof-chain.ts, `schemas/attestation-v1.json`
+**Related:** RFC-0002 (Proof Event Chain), `@vorionsys/basis-spec` proof-chain.ts, `schemas/attestation-v1.json`
 
 ---
 
@@ -11,7 +11,7 @@
 
 This RFC defines the **canonical signed scorecard** that a BASIS-compliant runtime publishes for each release. The scorecard records what conformance suite was run, what passed, what failed, and who signed off — so a buyer or auditor can verify a vendor's compliance claim without reading proprietary source code.
 
-Together with RFC-0002 (the public shape of audit events) and the forthcoming `@basis-spec/basis-conformance` test suite, this is the third leg of public-trust verification:
+Together with RFC-0002 (the public shape of audit events) and the forthcoming `@vorionsys/basis-spec-conformance` test suite, this is the third leg of public-trust verification:
 
 1. RFC-0002 — what every event LOOKS like (the receipt format)
 2. `basis-conformance` — what every implementation must DO (the test suite)

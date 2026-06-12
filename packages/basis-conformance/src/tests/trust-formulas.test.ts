@@ -22,7 +22,7 @@ import {
   GAIN_RATE,
   MAX_TRUST_SCORE,
   RISK_LEVELS,
-} from '@basis-spec/basis';
+} from '@vorionsys/basis-spec';
 
 const CEILING = MAX_TRUST_SCORE;
 const riskMul = (name: 'READ' | 'LOW' | 'MEDIUM' | 'HIGH'): number =>

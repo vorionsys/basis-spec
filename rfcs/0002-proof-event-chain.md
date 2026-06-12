@@ -3,7 +3,7 @@
 **Status:** Draft
 **Date:** 2026-04-25
 **Author:** Vorion LLC
-**Related:** `@basis-spec/basis` proof-chain.ts (types), proof-chain-schema.ts (Zod validators)
+**Related:** `@vorionsys/basis-spec` proof-chain.ts (types), proof-chain-schema.ts (Zod validators)
 
 ---
 
@@ -11,7 +11,7 @@
 
 This RFC defines the **canonical shape of every audit event a BASIS-compliant runtime emits**, plus the hash-chain semantics that make the audit trail tamper-evident. Together with RFC-0003 (Conformance Attestation), this is the substrate that lets a Fortune 500 CISO independently verify a Vorion-governed agent without reading proprietary source.
 
-Implementations — open or commercial — MUST emit events that validate against `ProofEventSchema` from `@basis-spec/basis/zod`. They MAY add internal fields for their own runtime needs but MUST NOT change the meaning or constraints of the public fields.
+Implementations — open or commercial — MUST emit events that validate against `ProofEventSchema` from `@vorionsys/basis-spec/zod`. They MAY add internal fields for their own runtime needs but MUST NOT change the meaning or constraints of the public fields.
 
 ---
 

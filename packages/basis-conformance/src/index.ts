@@ -2,10 +2,10 @@
 // Copyright 2024-2026 Vorion LLC
 
 /**
- * @basis-spec/basis-conformance — public entry.
+ * @vorionsys/basis-spec-conformance — public entry.
  *
  * v0.1 ships in self-test mode: the suite runs against the canonical
- * TypeScript representation of the spec (`@basis-spec/basis`) and the
+ * TypeScript representation of the spec (`@vorionsys/basis-spec`) and the
  * RFC schemas in this repo. A passing run proves the spec is internally
  * coherent and that the canonical impl correctly implements it.
  *
@@ -15,7 +15,7 @@
  * RFC-0004.
  *
  * Usage from code:
- *   import { runConformance } from '@basis-spec/basis-conformance/runner';
+ *   import { runConformance } from '@vorionsys/basis-spec-conformance/runner';
  *   const results = await runConformance();
  *   // results: { passed, failed, skipped, total, details, suite: {...} }
  *

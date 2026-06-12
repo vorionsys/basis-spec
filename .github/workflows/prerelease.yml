@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Pre-release publish for @basis-spec/basis (and any future shared workspace package).
+# Pre-release publish for @vorionsys/basis-spec (and any future shared workspace package).
 # Operationalizes umbrella U1 — pre-publish sharing path must be backed by real CI,
 # not "Slack DM with a tarball." Triggered manually from a feature branch; publishes
 # `<version>-rc.<short-sha>` to npm with the `next` dist-tag, gated by the same
@@ -132,6 +132,6 @@ jobs:
             echo "Install with:"
             echo ""
             echo '```bash'
-            echo "npm install @vorionsys/${{ inputs.package }}@${{ steps.version.outputs.prerelease }}"
+            echo "npm install $(node -p "require('./${{ env.PACKAGE_DIR }}/package.json').name")@${{ steps.version.outputs.prerelease }}"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
