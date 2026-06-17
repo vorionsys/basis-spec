@@ -30,3 +30,14 @@ export {
   SUITE_REVISION,
   SUITE_SOURCE,
 } from './suite-meta.js';
+
+/**
+ * Truth-only structural validator for an external proof-chain manifest.
+ * Checks RFC-0002 required-field presence/shape only — emits no trust or
+ * compliance verdict and does not verify signatures or hash linkage.
+ */
+export {
+  validateManifest,
+  type ManifestError,
+  type ManifestValidationResult,
+} from './manifest-validator.js';

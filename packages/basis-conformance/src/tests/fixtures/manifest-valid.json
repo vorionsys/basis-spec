@@ -1,0 +1,41 @@
+[
+  {
+    "eventId": "11111111-2222-3333-4444-555555555555",
+    "eventType": "intent_received",
+    "correlationId": "corr-001",
+    "agentId": "agt-abc",
+    "payload": {
+      "type": "intent_received",
+      "intentId": "int-001",
+      "action": "read_record",
+      "actionType": "read",
+      "resourceScope": ["records:patient:123"]
+    },
+    "previousHash": null,
+    "eventHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "occurredAt": "2026-04-25T12:00:00Z",
+    "recordedAt": "2026-04-25T12:00:01Z"
+  },
+  {
+    "eventId": "66666666-7777-8888-9999-000000000000",
+    "eventType": "decision_made",
+    "correlationId": "corr-001",
+    "agentId": "agt-abc",
+    "payload": {
+      "type": "decision_made",
+      "decisionId": "dec-001",
+      "intentId": "int-001",
+      "permitted": true,
+      "trustBand": "T4",
+      "trustScore": 612,
+      "reasoning": ["within tier"]
+    },
+    "previousHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "eventHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "occurredAt": "2026-04-25T12:00:02Z",
+    "recordedAt": "2026-04-25T12:00:03Z",
+    "shadowMode": "verified",
+    "verificationId": "hitl-001",
+    "verifiedAt": "2026-04-25T13:00:00Z"
+  }
+]

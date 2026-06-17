@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# Continuous integration for @vorionsys/basis-spec.
+#
+# Installs cleanly, builds, and runs tests on every push and pull request to
+# main. This is the everyday correctness gate; the publish gates live in
+# release.yml (stable `latest`) and prerelease.yml (`next`).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build & test (Node 20)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install (clean)
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test --if-present
