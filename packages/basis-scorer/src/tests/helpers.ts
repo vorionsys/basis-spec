@@ -13,7 +13,7 @@
  * it parses these strings with its own deterministic nanosecond parser.
  */
 
-import type { ProofEvent, ProofEventType } from '@vorionsys/basis-spec';
+import type { ProofEvent, ProofEventType, RiskLevel } from '@vorionsys/basis-spec';
 
 let seq = 0;
 /** Stable, monotonic eventId generator for fixtures. */
@@ -67,6 +67,11 @@ export function actionCycle(opts: {
   baseIso: string;
   outcome: 'success' | 'partial' | 'fail';
   shadowMode?: ProofEvent['shadowMode'];
+  /**
+   * RFC-0002.1 — optional SIGNED, in-chain risk on the intent_received event.
+   * When set, the scorer PREFERS it over policy.riskByActionType.
+   */
+  riskLevel?: RiskLevel;
 }): ProofEvent[] {
   cycleSeq += 1;
   const tag = String(cycleSeq).padStart(6, '0');
@@ -74,11 +79,12 @@ export function actionCycle(opts: {
   const decisionId = `d-${tag}`;
   const executionId = `x-${tag}`;
   const sm = opts.shadowMode ? { shadowMode: opts.shadowMode } : {};
+  const riskField = opts.riskLevel ? { riskLevel: opts.riskLevel } : {};
 
   const events: ProofEvent[] = [
     makeEvent(
       'intent_received',
-      { type: 'intent_received', intentId, action: 'act', actionType: opts.actionType, resourceScope: [] },
+      { type: 'intent_received', intentId, action: 'act', actionType: opts.actionType, resourceScope: [], ...riskField },
       isoOffset(opts.baseIso, 0),
       `${intentId}-evt`,
       sm,

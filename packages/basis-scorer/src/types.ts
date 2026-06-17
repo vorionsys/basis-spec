@@ -11,10 +11,32 @@ import type {
 export type RiskKey = RiskLevel;
 
 /**
+ * Provenance of a resolved per-outcome risk multiplier (RFC-0002.1).
+ *
+ * Surfaced for honesty/attribution: a consumer can tell whether an action's
+ * risk came from SIGNED in-chain evidence or from an out-of-chain policy.
+ *
+ *   - `'chain'`      — the signed `intent_received.riskLevel` was used
+ *                      (RFC-0002.1 in-chain evidence — preferred).
+ *   - `'policy'`     — fell back to `policy.riskByActionType` because the
+ *                      chain carried no signed risk (deprecated path).
+ *   - `'failclosed'` — neither resolved (broken link, unmapped action, or no
+ *                      signed risk + no mapping); pinned to the max-configured
+ *                      `defaultRisk` (LIFE_CRITICAL by default).
+ */
+export type RiskSource = 'chain' | 'policy' | 'failclosed';
+
+/**
  * The scoring policy. This is UNTRUSTED, caller-supplied input (see
- * `policy-hash.ts`): risk is not in the signed chain, so the caller controls
- * the risk multiplier and the observation cap. It is hashed into the result
- * (`policyHash`) for reproducibility and attribution.
+ * `policy-hash.ts`). It is hashed into the result (`policyHash`) for
+ * reproducibility and attribution.
+ *
+ * RFC-0002.1: when an action's `intent_received` event carries a SIGNED,
+ * in-chain `riskLevel`, that value is PREFERRED and the policy's
+ * `riskByActionType` mapping is NOT consulted for that action. The policy
+ * mapping is now a FALLBACK for RFC-0002.0 chains (and unmapped actions). The
+ * caller therefore no longer controls the risk multiplier for any action whose
+ * chain carries signed risk — that integrity moved into the signed evidence.
  */
 export interface ScoringPolicy {
   /** Observation tier — governs the score ceiling and the max tier cap. */
@@ -23,6 +45,10 @@ export interface ScoringPolicy {
   /**
    * Explicit map from a free-form `intent_received.actionType` to a canonical
    * risk key. Anything not present here resolves to `defaultRisk`.
+   *
+   * RFC-0002.1: this is now a FALLBACK only. It is consulted for an action
+   * exactly when that action's `intent_received` event does NOT carry a signed
+   * in-chain `riskLevel`. In-chain risk takes precedence (see `RiskSource`).
    */
   readonly riskByActionType: Readonly<Record<string, RiskKey>>;
 
@@ -69,6 +95,23 @@ export interface Divergence {
   readonly recomputed: number;
 }
 
+/**
+ * Per-outcome risk-resolution record (RFC-0002.1). One entry per
+ * execution outcome (`execution_completed` / `execution_failed`) that the
+ * scorer resolved a risk multiplier for. Surfaced for honesty/attribution:
+ * a consumer can audit, per action, whether risk came from signed in-chain
+ * evidence (`'chain'`), the out-of-chain policy fallback (`'policy'`), or a
+ * fail-closed default (`'failclosed'`).
+ */
+export interface RiskResolutionRecord {
+  /** The execution-outcome eventId the risk was resolved for. */
+  readonly eventId: string;
+  /** The resolved canonical risk key. */
+  readonly risk: RiskKey;
+  /** Where the risk came from. */
+  readonly source: RiskSource;
+}
+
 /** Circuit-breaker state derived from the recomputed score + risk accumulator. */
 export type CircuitBreakerState = 'NONE' | 'DEGRADED' | 'TRIPPED';
 
@@ -112,6 +155,14 @@ export interface ScoreResult {
 
   /** Recompute-vs-claimed divergences (advisory). */
   readonly divergences: ReadonlyArray<Divergence>;
+
+  /**
+   * Per-outcome risk-resolution records (RFC-0002.1), in scored order. Lets a
+   * consumer attribute every gain/loss to whether its risk came from signed
+   * in-chain evidence (`source:'chain'`), the policy fallback
+   * (`source:'policy'`), or a fail-closed default (`source:'failclosed'`).
+   */
+  readonly riskResolutions: ReadonlyArray<RiskResolutionRecord>;
 
   /**
    * True if any divergence where the claim exceeded the recomputed value was

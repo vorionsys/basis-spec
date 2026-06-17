@@ -49,6 +49,8 @@ import type {
   CircuitBreakerState,
   Divergence,
   RiskKey,
+  RiskResolutionRecord,
+  RiskSource,
   ScoreResult,
   ScoringPolicy,
 } from './types.js';
@@ -144,14 +146,19 @@ function resolveObservation(policy: ScoringPolicy): ResolvedObservation {
 }
 
 // ---------------------------------------------------------------------------
-// Linkage index: executionId -> actionType (fail-closed to max risk)
+// Linkage index: executionId -> (in-chain riskLevel | actionType)
 //
-// Risk is NOT in any execution event. We resolve it by walking
+// RFC-0002.1: risk MAY now be SIGNED, in-chain evidence carried on
+// `intent_received.riskLevel`. We resolve risk for an outcome by walking
 //   executionId -> execution_started.decisionId
 //             -> decision_made.intentId
-//             -> intent_received.actionType
-// then mapping actionType through policy.riskByActionType. Any broken link or
-// unmapped action fails closed to policy.defaultRisk (default LIFE_CRITICAL).
+//             -> intent_received
+// and then, in PRECEDENCE ORDER:
+//   1. CHAIN     — intent_received.riskLevel (signed evidence) if present;
+//   2. POLICY    — else map intent_received.actionType through
+//                  policy.riskByActionType (deprecated, out-of-chain path);
+//   3. FAILCLOSED — else policy.defaultRisk (default LIFE_CRITICAL).
+// Any broken link also fails closed to the max (LIFE_CRITICAL) default.
 // ---------------------------------------------------------------------------
 
 interface LinkageIndex {
@@ -159,6 +166,12 @@ interface LinkageIndex {
   readonly decisionToIntent: Map<string, string>;
   /** intentId -> actionType (from intent_received) */
   readonly intentToActionType: Map<string, string>;
+  /**
+   * intentId -> in-chain signed riskLevel (RFC-0002.1), when the
+   * intent_received payload carries a valid `riskLevel`. Absent for
+   * RFC-0002.0 chains, which fall back to the policy mapping.
+   */
+  readonly intentToRiskLevel: Map<string, RiskLevel>;
   /** executionId -> decisionId (from execution_started) */
   readonly executionToDecision: Map<string, string>;
 }
@@ -166,6 +179,7 @@ interface LinkageIndex {
 function buildLinkageIndex(events: readonly ProofEvent[]): LinkageIndex {
   const decisionToIntent = new Map<string, string>();
   const intentToActionType = new Map<string, string>();
+  const intentToRiskLevel = new Map<string, RiskLevel>();
   const executionToDecision = new Map<string, string>();
 
   for (const ev of events) {
@@ -176,6 +190,17 @@ function buildLinkageIndex(events: readonly ProofEvent[]): LinkageIndex {
         const actionType = p['actionType'];
         if (typeof intentId === 'string' && typeof actionType === 'string') {
           intentToActionType.set(intentId, actionType);
+        }
+        // RFC-0002.1: capture the SIGNED, in-chain riskLevel when present and
+        // a valid canonical key. An unknown/garbage value is ignored here
+        // (fail-closed): resolveRisk then falls through to policy/default.
+        const riskLevel = p['riskLevel'];
+        if (
+          typeof intentId === 'string' &&
+          typeof riskLevel === 'string' &&
+          riskLevel in RISK_LEVELS
+        ) {
+          intentToRiskLevel.set(intentId, riskLevel as RiskLevel);
         }
         break;
       }
@@ -199,12 +224,20 @@ function buildLinkageIndex(events: readonly ProofEvent[]): LinkageIndex {
         break;
     }
   }
-  return { decisionToIntent, intentToActionType, executionToDecision };
+  return { decisionToIntent, intentToActionType, intentToRiskLevel, executionToDecision };
 }
 
 interface RiskResolution {
   readonly key: RiskKey;
   readonly multiplier: number;
+  /**
+   * Provenance of the resolved risk (RFC-0002.1):
+   *   - 'chain'      — signed in-chain intent_received.riskLevel was used;
+   *   - 'policy'     — fell back to policy.riskByActionType (out-of-chain);
+   *   - 'failclosed' — neither resolved; pinned to policy.defaultRisk (max).
+   */
+  readonly source: RiskSource;
+  /** True only when the linkage walk to intent_received itself broke. */
   readonly brokenLink: boolean;
 }
 
@@ -214,30 +247,42 @@ function resolveRisk(
   policy: ScoringPolicy,
 ): RiskResolution {
   const defaultRisk: RiskKey = policy.defaultRisk ?? 'LIFE_CRITICAL';
-  const maxResolution = (): RiskResolution => ({
+  // Fail-closed to the max-configured risk. `brokenLink` is true only when the
+  // linkage chain to intent_received could not be walked; an intent that
+  // resolves but carries neither a signed riskLevel nor a policy mapping is
+  // ALSO failclosed, but with brokenLink=false (the link was intact).
+  const maxResolution = (brokenLink: boolean): RiskResolution => ({
     key: defaultRisk,
     multiplier: RISK_LEVELS[defaultRisk].multiplier,
-    brokenLink: true,
+    source: 'failclosed',
+    brokenLink,
   });
 
-  if (typeof executionId !== 'string') return maxResolution();
+  if (typeof executionId !== 'string') return maxResolution(true);
   const decisionId = index.executionToDecision.get(executionId);
-  if (decisionId === undefined) return maxResolution();
+  if (decisionId === undefined) return maxResolution(true);
   const intentId = index.decisionToIntent.get(decisionId);
-  if (intentId === undefined) return maxResolution();
+  if (intentId === undefined) return maxResolution(true);
+
+  // (1) PREFER signed, in-chain risk (RFC-0002.1). When the intent_received
+  // event carries a valid `riskLevel`, it is the evidence and OVERRIDES any
+  // policy mapping — the operator/runtime signed the risk at intent time.
+  const inChain = index.intentToRiskLevel.get(intentId);
+  if (inChain !== undefined) {
+    return { key: inChain, multiplier: RISK_LEVELS[inChain].multiplier, source: 'chain', brokenLink: false };
+  }
+
+  // (2) FALL BACK to the policy mapping (deprecated, out-of-chain path) only
+  // when the chain carries no signed risk for this action.
   const actionType = index.intentToActionType.get(intentId);
-  if (actionType === undefined) return maxResolution();
+  if (actionType === undefined) return maxResolution(false);
 
   const mapped = policy.riskByActionType[actionType];
   if (mapped === undefined || !(mapped in RISK_LEVELS)) {
     // actionType resolved but not mapped by policy => fail closed to default.
-    return {
-      key: defaultRisk,
-      multiplier: RISK_LEVELS[defaultRisk].multiplier,
-      brokenLink: false,
-    };
+    return maxResolution(false);
   }
-  return { key: mapped, multiplier: RISK_LEVELS[mapped].multiplier, brokenLink: false };
+  return { key: mapped, multiplier: RISK_LEVELS[mapped].multiplier, source: 'policy', brokenLink: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -304,6 +349,7 @@ function failClosed(error: string, policyHash: string, flags: string[] = []): Sc
     circuitBreaker: 'NONE',
     riskAccumulator24h: 0,
     divergences: [],
+    riskResolutions: [],
     overClaim: false,
     flags,
     scoredEventCount: 0,
@@ -408,8 +454,17 @@ export function scoreChain(
   let hasQualified = false; // must-fix #1: CB engages only after qualifying
   let scoredEventCount = 0;
   const divergences: Divergence[] = [];
+  const riskResolutions: RiskResolutionRecord[] = [];
   let overClaim = false;
   const accumulatorEntries: AccumulatorEntry[] = [];
+
+  // Record a per-outcome risk resolution (RFC-0002.1) for honesty/attribution.
+  const recordRisk = (
+    eventId: string,
+    risk: { key: RiskKey; source: RiskSource },
+  ): void => {
+    riskResolutions.push({ eventId, risk: risk.key, source: risk.source });
+  };
 
   // Current float score reconstructed from the scaled accumulator via one
   // pinned division (must-fix #5: ln/cbrt input is the quantized score).
@@ -452,6 +507,7 @@ export function scoreChain(
             : undefined;
           const risk = resolveRisk(executionId, linkage, policy);
           if (risk.brokenLink) flags.push(`broken_link_risk_maxed:${ev.eventId}`);
+          recordRisk(ev.eventId, risk);
 
           if (status === 'success') {
             // Gain is frozen if the agent is in degraded mode (must-fix #1).
@@ -491,6 +547,7 @@ export function scoreChain(
             : undefined;
           const risk = resolveRisk(executionId, linkage, policy);
           if (risk.brokenLink) flags.push(`broken_link_risk_maxed:${ev.eventId}`);
+          recordRisk(ev.eventId, risk);
 
           const ti = currentTierIndex();
           const loss = calculateLoss({
@@ -690,6 +747,7 @@ export function scoreChain(
     circuitBreaker,
     riskAccumulator24h,
     divergences,
+    riskResolutions,
     overClaim,
     flags,
     scoredEventCount,

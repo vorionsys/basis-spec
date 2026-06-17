@@ -39,4 +39,6 @@ export type {
   CircuitBreakerState,
   Divergence,
   RiskKey,
+  RiskSource,
+  RiskResolutionRecord,
 } from './types.js';

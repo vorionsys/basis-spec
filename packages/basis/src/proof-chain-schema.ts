@@ -20,6 +20,7 @@
 
 import { z } from 'zod';
 import { PROOF_EVENT_TYPES } from './proof-chain.js';
+import { RISK_LEVELS } from './canonical.js';
 
 // =====================================================================
 // Primitives
@@ -35,6 +36,15 @@ const Iso8601Schema = z.string().datetime({ offset: true });
 
 const ProofEventTypeSchema = z.enum(
   PROOF_EVENT_TYPES as unknown as [string, ...Array<string>],
+);
+
+/**
+ * Canonical risk-level keys, sourced directly from `RISK_LEVELS` so the
+ * in-chain `intent_received.riskLevel` (RFC-0002.1) can never drift from the
+ * scorer's multiplier table. Single source of truth — no hardcoded literals.
+ */
+const RiskLevelSchema = z.enum(
+  Object.keys(RISK_LEVELS) as [keyof typeof RISK_LEVELS, ...Array<keyof typeof RISK_LEVELS>],
 );
 
 const ShadowModeStatusSchema = z.enum([
@@ -55,6 +65,9 @@ const IntentReceivedPayloadSchema = z.object({
   action: z.string().min(1),
   actionType: z.string().min(1),
   resourceScope: z.array(z.string()),
+  // RFC-0002.1 — optional SIGNED, in-chain risk classification. Part of the
+  // payload (hashable) bytes. Optional = back-compat with RFC-0002.0 chains.
+  riskLevel: RiskLevelSchema.optional(),
 });
 
 const DecisionMadePayloadSchema = z.object({
@@ -203,6 +216,23 @@ export const ProofEventSchema = z
       message:
         'verificationId and verifiedAt are required when shadowMode is "verified" or "rejected"',
       path: ['verificationId'],
+    },
+  )
+  .refine(
+    (ev) => {
+      // RFC-0002.1: a present intent_received.riskLevel MUST be a canonical
+      // RISK_LEVELS key. Without this, the union's GenericPayload escape hatch
+      // would silently accept a garbage riskLevel as a generic payload — the
+      // signed in-chain risk would not actually be enforceable. This refine
+      // closes that hole while leaving riskLevel OPTIONAL (absent is fine).
+      if (ev.eventType !== 'intent_received') return true;
+      const rl = (ev.payload as { riskLevel?: unknown }).riskLevel;
+      return rl === undefined || RiskLevelSchema.safeParse(rl).success;
+    },
+    {
+      message:
+        'intent_received.riskLevel must be a canonical RISK_LEVELS key (READ/LOW/MEDIUM/HIGH/CRITICAL/LIFE_CRITICAL) when present',
+      path: ['payload', 'riskLevel'],
     },
   );
 
