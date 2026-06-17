@@ -68,6 +68,49 @@ describe('proof-event/shape: well-formed events validate', () => {
   });
 });
 
+describe('proof-event/shape: RFC-0002.1 intent_received.riskLevel (signed in-chain risk)', () => {
+  const intentBase = {
+    eventId: '99999999-aaaa-bbbb-cccc-dddddddddddd',
+    eventType: 'intent_received',
+    correlationId: 'corr-001',
+    agentId: 'agt-abc',
+    payload: {
+      type: 'intent_received',
+      intentId: 'int-001',
+      action: 'write the row',
+      actionType: 'db.write',
+      resourceScope: ['db:orders'],
+    },
+    previousHash: null as string | null,
+    eventHash: 'a'.repeat(64),
+    occurredAt: '2026-04-25T12:00:00Z',
+    recordedAt: '2026-04-25T12:00:01Z',
+  };
+
+  it('intent_received WITHOUT riskLevel is valid (back-compat with RFC-0002.0)', () => {
+    const r = ProofEventSchema.safeParse(intentBase);
+    expect(r.success).toBe(true);
+  });
+
+  it('intent_received WITH a canonical riskLevel is valid', () => {
+    for (const riskLevel of ['READ', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'LIFE_CRITICAL']) {
+      const r = ProofEventSchema.safeParse({
+        ...intentBase,
+        payload: { ...intentBase.payload, riskLevel },
+      });
+      expect(r.success, `riskLevel=${riskLevel}`).toBe(true);
+    }
+  });
+
+  it('intent_received with a NON-canonical riskLevel fails', () => {
+    const r = ProofEventSchema.safeParse({
+      ...intentBase,
+      payload: { ...intentBase.payload, riskLevel: 'SUPER_CRITICAL' },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
 describe('proof-event/shape: malformed events fail', () => {
   it('missing eventId fails', () => {
     const { eventId: _drop, ...without } = validEvent;

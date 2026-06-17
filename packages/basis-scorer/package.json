@@ -1,0 +1,56 @@
+{
+  "name": "@vorionsys/basis-scorer",
+  "version": "0.1.0",
+  "description": "BASIS reference scorer — a pure, deterministic, fail-closed function that RE-COMPUTES an agent's trust score and tier from a validated proof-event chain, so a client's claimed tier can only be lowered, never raised. Reuses @vorionsys/basis-spec canonical formulas.",
+  "keywords": [
+    "ai",
+    "agent",
+    "governance",
+    "trust",
+    "scorer",
+    "deterministic",
+    "fail-closed",
+    "basis"
+  ],
+  "homepage": "https://github.com/vorionsys/basis-spec",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorionsys/basis-spec.git",
+    "directory": "packages/basis-scorer"
+  },
+  "bugs": "https://github.com/vorionsys/basis-spec/issues",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@vorionsys/basis-spec": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
