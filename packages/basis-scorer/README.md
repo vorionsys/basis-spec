@@ -61,8 +61,12 @@ It still **fails closed** on anything it cannot compute.
      never summed.
 4. The **risk multiplier** for each outcome is resolved by walking
    `executionId → execution_started.decisionId → decision_made.intentId →
-   intent_received.actionType`, then mapping the action type through the
-   **policy** `riskByActionType`. Risk is **not in the chain** (see Limitations).
+   intent_received`. **RFC-0002.1:** if that `intent_received` event carries a
+   SIGNED, in-chain `riskLevel`, it is **preferred** (`riskSource: 'chain'`).
+   Otherwise the scorer falls back to mapping `actionType` through the
+   **policy** `riskByActionType` (`riskSource: 'policy'`, a deprecated
+   out-of-chain path), and fails closed to max risk when neither resolves
+   (`riskSource: 'failclosed'`). See Limitations.
 5. The result is capped: `effectiveTier = min(tierFromScore(score),
    observation-tier maxTier, policy ceiling, claimed tier)`, with a T0 floor
    when the circuit breaker is tripped.
@@ -201,16 +205,29 @@ of failures is always a safety signal that can only lower trust).
 
 ## Limitations (read before relying on this)
 
-- **Risk is not in the signed chain.** `execution_completed` /
-  `execution_failed` carry no `RiskLevel`, and `intent_received.actionType` is a
-  free-form string. Risk is resolved only through the **caller-supplied**
-  `policy.riskByActionType`. The same party that asserts the tier therefore
-  controls the risk multiplier (hence gain/loss magnitude) and the observation
-  cap (`assertVerifiedObservation`). **Risk integrity depends on policy
-  integrity, which is out of the signed chain.** To make this reproducible and
-  attributable, the exact policy is hashed into `result.policyHash`. We
-  recommend a follow-up (RFC-0002.1) that puts a **signed** risk field in
-  `intent_received` (or `decision_made`) so risk becomes part of the evidence.
+- **Risk can now be SIGNED, in-chain evidence (RFC-0002.1) — and is preferred.**
+  When an action's `intent_received` event carries a signed `riskLevel`, the
+  scorer uses it and does **not** consult the caller policy for that action's
+  risk (`riskSource: 'chain'`). This closes the gap this scorer originally
+  surfaced: risk is no longer policy-controlled for any action whose chain
+  carries it, so the `policyHash` limitation is **reduced** — `policyHash` still
+  attributes the observation tier and the *fallback* risk map, but it no longer
+  governs the risk multiplier (hence gain/loss magnitude) of in-chain-risk
+  actions.
+  - **Fallback (deprecated, out-of-chain):** for RFC-0002.0 chains that carry no
+    `riskLevel`, risk is still resolved through the caller-supplied
+    `policy.riskByActionType` (`riskSource: 'policy'`). On this path the same
+    party that asserts the tier controls the risk multiplier and the observation
+    cap (`assertVerifiedObservation`), so risk integrity depends on policy
+    integrity. The exact policy is hashed into `result.policyHash` for
+    reproducibility/attribution. Emit `intent_received.riskLevel` to move off
+    this path.
+  - **Fail-closed:** if neither a signed `riskLevel` nor a policy mapping
+    resolves (or the linkage is broken), risk pins to `defaultRisk`
+    (`LIFE_CRITICAL`, `riskSource: 'failclosed'`).
+  - `result.riskResolutions` records, per scored outcome,
+    `{ eventId, risk, source }` so a consumer can audit where every action's
+    risk came from.
 - **`execution_started` must precede an outcome** for risk to resolve. If a
   runtime omits it, the `executionId → decisionId → intentId → actionType`
   link is unrecoverable and risk fails closed to max (and the outcome is
@@ -229,9 +246,11 @@ explicitly deferred.
 type RiskKey =
   | 'READ' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | 'LIFE_CRITICAL';
 
+type RiskSource = 'chain' | 'policy' | 'failclosed'; // RFC-0002.1 provenance
+
 interface ScoringPolicy {
   observationTier: ObservationTier;                  // governs ceiling + maxTier
-  riskByActionType: Readonly<Record<string, RiskKey>>;
+  riskByActionType: Readonly<Record<string, RiskKey>>; // FALLBACK only (RFC-0002.1)
   defaultRisk?: RiskKey;                             // default 'LIFE_CRITICAL'
   ceilingTier?: TrustTier;                           // optional hard policy cap
   assertVerifiedObservation?: boolean;               // default false; gates ATTESTED/VERIFIED
@@ -246,6 +265,12 @@ interface Divergence {
   recomputed: number;
 }
 
+interface RiskResolutionRecord {   // RFC-0002.1 — per-outcome risk attribution
+  eventId: string;                 // the execution-outcome event
+  risk: RiskKey;                   // the resolved canonical risk
+  source: RiskSource;              // 'chain' | 'policy' | 'failclosed'
+}
+
 interface ScoreResult {
   recomputedScore: number;        // quantized fixed-precision decimal in [0,1000]
   recomputedTier: TrustTier;
@@ -255,6 +280,7 @@ interface ScoreResult {
   circuitBreaker: 'NONE' | 'DEGRADED' | 'TRIPPED';
   riskAccumulator24h: number;
   divergences: ReadonlyArray<Divergence>;
+  riskResolutions: ReadonlyArray<RiskResolutionRecord>; // RFC-0002.1 attribution
   overClaim: boolean;             // advisory only — see note above
   flags: ReadonlyArray<string>;
   scoredEventCount: number;

@@ -9,6 +9,11 @@
  * customer SOC teams consume this shape to verify what their governance
  * gateway is recording on their behalf.
  *
+ * Imports the canonical `RiskLevel` type so the optional in-chain risk
+ * declaration on `intent_received` (RFC-0002.1) is constrained to the
+ * exact `RISK_LEVELS` keys — no string drift between the chain and the
+ * scorer's risk multiplier table.
+ *
  * Implementation independence: any conforming runtime — open or
  * proprietary — MUST emit events that validate against the Zod schema in
  * `./proof-chain-schema.ts`. The cryptographic operations that produce
@@ -20,6 +25,8 @@
  * losslessly across language boundaries (Python, Go, Rust, JSON-only
  * pipelines). Implementations MAY parse to native Date types internally.
  */
+
+import type { RiskLevel } from './canonical.js';
 
 /**
  * Event types in a BASIS proof chain. Stable string values — implementations
@@ -170,6 +177,28 @@ export interface IntentReceivedPayload {
   readonly action: string;
   readonly actionType: string;
   readonly resourceScope: ReadonlyArray<string>;
+
+  /**
+   * RFC-0002.1 — SIGNED, in-chain risk classification of this action.
+   *
+   * One of the canonical `RISK_LEVELS` keys (READ / LOW / MEDIUM / HIGH /
+   * CRITICAL / LIFE_CRITICAL). The operator/runtime declares the action's
+   * risk at intent time and it becomes part of the **signed event bytes**
+   * (it lives in `payload`, which is inside the canonical-JSON hash input —
+   * see RFC-0002 §"Hash semantics"). Once sealed it is tamper-evident and
+   * cannot be silently re-classified after the fact.
+   *
+   * This closes the gap surfaced by the reference scorer: previously risk
+   * was injected out-of-chain by the caller's `ScoringPolicy.riskByActionType`
+   * (an unsigned trust dependency the same party that asserts the tier also
+   * controls). With `riskLevel` present, risk is evidence, not policy.
+   *
+   * OPTIONAL for backward compatibility with RFC-0002.0 chains: when absent,
+   * a scorer falls back to the caller's policy mapping (a deprecated,
+   * out-of-chain path). When present, the in-chain value takes precedence
+   * over any policy mapping. See `@vorionsys/basis-scorer` `riskSource`.
+   */
+  readonly riskLevel?: RiskLevel;
 }
 
 export interface DecisionMadePayload {
