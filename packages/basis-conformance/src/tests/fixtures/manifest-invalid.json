@@ -1,0 +1,14 @@
+[
+  {
+    "eventType": "decision_made",
+    "correlationId": "corr-001",
+    "payload": {
+      "type": "decision_made"
+    },
+    "previousHash": "NOT-HEX",
+    "eventHash": "tooshort",
+    "occurredAt": "2026-04-25 12:00:00",
+    "recordedAt": "2026-04-25T12:00:01Z",
+    "shadowMode": "rejected"
+  }
+]

@@ -1,5 +1,9 @@
 # BASIS Spec
 
+[![CI](https://github.com/vorionsys/basis-spec/actions/workflows/ci.yml/badge.svg)](https://github.com/vorionsys/basis-spec/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@vorionsys/basis-spec.svg)](https://www.npmjs.com/package/@vorionsys/basis-spec)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 **Baseline Authority for Safe & Interoperable Systems** — an open standard for AI agent trust and governance.
 
 ## Packages
@@ -7,7 +11,7 @@
 | Package | Description |
 |---|---|
 | [`@vorionsys/basis-spec`](packages/basis) | Canonical TypeScript representation of the spec — tiers, risk levels, formulas, constants, types, optional Zod validators, **proof-chain shape**. |
-| [`@vorionsys/basis-spec-conformance`](packages/basis-conformance) | Test vectors any implementation can run against itself to verify BASIS conformance. *(stub — coming next)* |
+| [`@vorionsys/basis-spec-conformance`](packages/basis-conformance) | Self-test vectors that check the spec is internally coherent, plus a truth-only structural validator (`validateManifest` / `basis-conformance validate <manifest.json>`) that checks an external proof-chain manifest for RFC-0002 required-field presence and basic shape. Structural checks only — it reports missing/malformed fields and emits no trust, compliance, or conformance verdict, and does not verify signatures or the hash chain. |
 
 ## RFCs
 
@@ -49,7 +53,7 @@ BASIS is a specification. The packages below implement it or build on it. The `@
 |---|---|---|
 | [`basis-gate`](https://github.com/vorionsys/basis-gate) | Reference runtime for BASIS Gate v1 — posture resolver, block/inline/deferred executor, Ed25519 two-stage proof chain, and reference layers (identity, tier-check, rate-limit, proof-chain-tip, audit-log). | `npm i @vorionsys/basis-gate-runtime @vorionsys/basis-gate-industry` |
 | [`mcp-server`](https://github.com/voriongit/mcp-server) | Model Context Protocol server that wraps tool calls in a BASIS Gate pipeline so an MCP client's actions are governed and proof-chained. | *npm pkg withheld (IP review) — see repo* |
-| [`vorion-find`](https://github.com/voriongit/vorion-find) | Zero-dep CLI that scans a device for AI agents and streams findings. | CLI — run from the repo (`npx` / download); not a library |
+| [`vorion-find`](https://github.com/voriongit/vorion-find) | Zero-dep CLI that scans a device for AI agents and streams findings (proprietary; binary free to use — not Apache-2.0). | CLI — run from the repo (`npx` / download); not a library |
 | [`sdk`](https://github.com/vorionsys/sdk) | TypeScript client for building agents that emit BASIS-conformant actions and consume gate verdicts. | *npm pkg withheld (IP review) — see repo* |
 
 **Run the reference runtime in ~50 lines** — a known agent's action is allowed and proof-chained; an unknown agent is denied by the identity rule; each verdict emits a signed proof-chain tip. See [`examples/minimal-governance.ts`](https://github.com/vorionsys/basis-gate/blob/HEAD/examples/minimal-governance.ts) (starter / reference use, not production-hardened):
