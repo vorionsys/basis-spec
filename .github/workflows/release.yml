@@ -25,6 +25,8 @@ on:
         default: basis
         options:
           - basis
+          - basis-conformance
+          - basis-scorer
 
 permissions:
   contents: read
