@@ -62,6 +62,7 @@ jobs:
 
       - name: Gates (typecheck + build; tests run if present)
         run: |
+          npm run build -w packages/basis
           npm run typecheck --workspaces --if-present
           npm run build --workspaces --if-present
           npm run test --workspaces --if-present

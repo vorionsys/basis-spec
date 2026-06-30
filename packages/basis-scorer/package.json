@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/basis-scorer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "BASIS reference scorer — a pure, deterministic, fail-closed function that RE-COMPUTES an agent's trust score and tier from a validated proof-event chain, so a client's claimed tier can only be lowered, never raised. Reuses @vorionsys/basis-spec canonical formulas.",
   "keywords": [
     "ai",
