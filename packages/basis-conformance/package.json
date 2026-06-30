@@ -11,13 +11,15 @@
     "test-suite",
     "basis"
   ],
-  "homepage": "https://github.com/vorionsys/basis-spec",
+  "homepage": "https://vorion.org",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vorionsys/basis-spec.git",
     "directory": "packages/basis-conformance"
   },
-  "bugs": "https://github.com/vorionsys/basis-spec/issues",
+  "bugs": {
+    "url": "https://github.com/vorionsys/basis-spec/issues"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -37,7 +39,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md",
     "LICENSE"
   ],
@@ -62,5 +63,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "author": "Vorion LLC",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
