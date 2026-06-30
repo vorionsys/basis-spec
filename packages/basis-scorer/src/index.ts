@@ -23,7 +23,7 @@
  *   // result.effectiveTier is min(recomputed, observation, policy, claimed)
  */
 
-export { scoreChain, effectiveTier } from './scorer.js';
+export { scoreChain } from './scorer.js';
 export { parseOccurredAtNanos } from './time.js';
 export { hashPolicy } from './policy-hash.js';
 export {
@@ -42,3 +42,6 @@ export type {
   RiskSource,
   RiskResolutionRecord,
 } from './types.js';
+export * from './reconciliation.js';
+export * from './composite.js';
+export * from './golden-vectors.js';
