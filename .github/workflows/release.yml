@@ -1,15 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
-# Stable `latest` release for @vorionsys/basis-spec, published tokenlessly via npm
-# trusted publishing (OIDC) with a Sigstore provenance attestation — no
-# NPM_TOKEN is stored anywhere. Triggered by pushing a `v*` tag (e.g. v1.2.0).
+# Stable `latest` release for @vorionsys/* packages in this monorepo, published
+# tokenlessly via npm trusted publishing (OIDC) with a Sigstore provenance
+# attestation — no NPM_TOKEN is stored anywhere.
 #
-# This is the `latest`-channel counterpart to prerelease.yml (which publishes
-# `*-rc.<sha>` to the `next` tag). The monorepo root is private; only the
-# workspace package under packages/basis is published.
+# Tag pushes (v*) always publish from packages/basis.
+# workflow_dispatch lets you target any workspace package by directory name.
 #
-# Prerequisite: the npm trusted publisher for @vorionsys/basis-spec must be bound
-# (npmjs.com -> package Settings -> Trusted Publisher -> GitHub Actions:
-#  org vorionsys, repo basis-spec, workflow release.yml, environment blank).
+# Prerequisite: each npm package needs its own trusted publisher binding:
+#   npmjs.com -> package Settings -> Publishing access -> GitHub Actions:
+#   org vorionsys, repo basis-spec, workflow release.yml, environment blank
+#
+# Packages + npm names:
+#   basis             -> @vorionsys/basis-spec
+#   basis-conformance -> @vorionsys/basis-spec-conformance
+#   basis-scorer      -> @vorionsys/basis-scorer
+#   basis-registry    -> @vorionsys/basis-registry
 
 name: Release
 
@@ -25,6 +30,9 @@ on:
         default: basis
         options:
           - basis
+          - basis-conformance
+          - basis-scorer
+          - basis-registry
 
 permissions:
   contents: read
@@ -32,7 +40,7 @@ permissions:
 
 jobs:
   publish:
-    name: Build, gate, publish @vorionsys/basis-spec
+    name: Build, gate, publish packages/${{ github.event_name == 'workflow_dispatch' && inputs.package || 'basis' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
