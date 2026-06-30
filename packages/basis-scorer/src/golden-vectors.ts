@@ -13,7 +13,7 @@
  */
 
 import type { ObservationTier } from '@vorionsys/basis-spec';
-import { CANONICAL_FACTOR_IDS, type FactorScores } from './scorer.js';
+import { CANONICAL_FACTOR_IDS, type FactorScores } from './composite.js';
 import type { TierIndex, CarTier, EffectiveTierInput } from './reconciliation.js';
 
 // --- helpers to build full / partial factor maps deterministically ----------
