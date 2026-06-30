@@ -1,7 +1,8 @@
 # RFC-0002: Proof Event Chain v1
 
 **Status:** Draft
-**Date:** 2026-04-25
+**Version:** 1.1 (RFC-0002.1 — adds signed in-chain risk; see Changelog)
+**Date:** 2026-04-25 (v1.0); 2026-06-17 (v1.1)
 **Author:** Vorion LLC
 **Related:** `@vorionsys/basis-spec` proof-chain.ts (types), proof-chain-schema.ts (Zod validators)
 
@@ -59,6 +60,48 @@ The 10 canonical `eventType` values (lowercase, snake_case):
 Each has a typed `payload` interface — see `proof-chain.ts` for the full set.
 
 A `GenericPayload` escape hatch exists for forward-compatibility; new event types SHOULD migrate to a typed variant via RFC amendment.
+
+---
+
+## `intent_received` and signed in-chain risk (RFC-0002.1)
+
+The `intent_received` payload records the action a governed agent is asking to perform:
+
+```ts
+interface IntentReceivedPayload {
+  type:          'intent_received';
+  intentId:      string;
+  action:        string;            // human-readable description
+  actionType:    string;            // free-form classifier (e.g. "db.write")
+  resourceScope: string[];          // resources the action touches
+  riskLevel?:    RiskLevel;         // RFC-0002.1 — OPTIONAL signed in-chain risk
+}
+```
+
+`RiskLevel` is one of the canonical `RISK_LEVELS` keys: `READ`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`, `LIFE_CRITICAL`.
+
+### Why risk belongs in the chain
+
+Before RFC-0002.1, the action's **risk classification lived entirely outside the proof chain**. A scorer (e.g. `@vorionsys/basis-scorer`) had to take an action's risk from a caller-supplied `ScoringPolicy.riskByActionType` map — an **out-of-chain trust dependency**. Because risk drives the gain/loss magnitude (the risk multiplier in the canonical gain and loss formulas), whoever controlled that policy could under- or over-state how risky an action was, and the receipt could not prove what risk the operator actually assigned at the time the agent acted. The reference scorer surfaced this gap explicitly in its Limitations section.
+
+RFC-0002.1 closes the gap by letting the operator/runtime **declare the action's risk at intent time** and seal it into the event:
+
+- `riskLevel` lives inside `payload`, and `payload` is part of the **canonical-JSON hash input** (see Hash semantics below). It is therefore covered by `eventHash` / `eventHash3` and, when a `signature` is attached, **signed**. Once sealed it is tamper-evident: the risk an action was authorised at cannot be silently re-classified after the fact.
+- Risk becomes **evidence**, not policy. A verifier reading the chain can see, per action, what risk the operator committed to.
+
+### Precedence and back-compatibility
+
+`riskLevel` is **OPTIONAL** so existing RFC-0002.0 chains (which never carried it) validate and score unchanged.
+
+A conforming scorer resolves an action's risk with this precedence:
+
+1. **In-chain (signed) takes precedence.** If `intent_received.riskLevel` is present and is a canonical `RISK_LEVELS` key, the scorer MUST use it and MUST NOT consult any caller policy for that action's risk.
+2. **Policy fallback (deprecated, out-of-chain).** If `riskLevel` is absent, the scorer MAY fall back to the caller's `riskByActionType` mapping. This path is retained for back-compat with RFC-0002.0 chains and is explicitly the weaker, out-of-chain dependency described above.
+3. **Fail-closed.** If neither resolves (no signed risk, no policy mapping, or a broken linkage), the scorer fails closed to the maximum configured risk (`LIFE_CRITICAL` by default).
+
+Runtimes SHOULD emit `riskLevel` on every `intent_received` event going forward. New chains that omit it are valid but rely on the deprecated out-of-chain path for their risk integrity.
+
+The reference scorer surfaces a per-outcome `riskSource` of `'chain' | 'policy' | 'failclosed'` so a consumer can audit exactly where each action's risk came from.
 
 ---
 
@@ -150,7 +193,7 @@ This solves the chicken-and-egg problem of validating sandbox behavior: an agent
 - **Removing or renaming** any field, payload, or event type is breaking. Requires a major version bump and a separate migration RFC.
 - **Changing the canonical-serialization rules** is breaking — past chains stop verifying. Requires a major version bump, a migration RFC, and a versioned `serializationVersion` field on the chain head.
 
-The current `serializationVersion` is implied as `1`. RFC-0002.1 (forthcoming if needed) will introduce explicit versioning before any breaking serialization change ships.
+The current `serializationVersion` is implied as `1`. RFC-0002.1 adds the **optional** `intent_received.riskLevel` field (a non-breaking minor addition — see Changelog) and does **not** change the serialization rules: past chains verify byte-identically, because an absent optional field is simply omitted from the canonical-JSON input. A future RFC will introduce explicit `serializationVersion` before any *breaking* serialization change ships.
 
 ---
 
@@ -172,6 +215,18 @@ The RFC-0003 attestation format (companion document) describes how a runtime pub
 
 - **Public reference impl (forthcoming):** `vorionsys/basis-conformance` will include a verifier that walks any chain and produces `ChainVerificationResult` per the rules above. The conformance test suite (also forthcoming) will validate that a runtime correctly seals, links, and signs a representative chain.
 - **Vorion private impls** (`@vorionsys/proof-plane` and the audit-event subsystem of `cognigate-api`) emit events conforming to this RFC. The cryptographic operations (key management, batch sealing, Merkle tree commitments, TSA timestamping) are out of scope here — they are runtime business as long as the public output validates.
+
+---
+
+## Changelog
+
+### v1.1 — RFC-0002.1 (2026-06-17): signed in-chain risk
+
+- **Added** the OPTIONAL `riskLevel?: RiskLevel` field to the `intent_received` payload. Risk is now **SIGNED evidence**: the operator/runtime declares the action's risk at intent time, and because the field lives in `payload` it is part of the canonical-JSON hash input — covered by `eventHash` / `eventHash3` and by the event `signature` when present.
+- **Motivation.** Risk drives the gain/loss multiplier. Before v1.1, a scorer obtained risk from a caller-supplied `ScoringPolicy.riskByActionType` map — an out-of-chain trust dependency controlled by the same party that asserts the agent's tier. v1.1 moves that integrity into the signed chain.
+- **Precedence.** In-chain `riskLevel` **takes precedence** over the caller's policy mapping. The policy mapping becomes a **deprecated fallback** consulted only when an action carries no signed `riskLevel` (RFC-0002.0 chains). When neither resolves, scorers fail closed to maximum risk (`LIFE_CRITICAL`).
+- **Back-compat.** The field is optional. Existing RFC-0002.0 chains validate and score **unchanged** (they take the deprecated policy fallback path). No serialization-rule change; this is a non-breaking minor addition per the Backward-compatibility rules above.
+- **Reference impl.** `@vorionsys/basis-scorer` prefers in-chain risk and surfaces a per-outcome `riskSource` (`'chain' | 'policy' | 'failclosed'`) for attribution. The Zod validator (`proof-chain-schema.ts`) accepts the optional field, constrained to the canonical `RISK_LEVELS` keys.
 
 ---
 

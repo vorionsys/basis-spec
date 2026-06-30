@@ -1,14 +1,17 @@
 {
-  "name": "@vorionsys/basis-scorer",
+  "name": "@vorionsys/basis-registry",
   "version": "0.1.0",
-  "description": "BASIS reference scorer — a pure, deterministic, fail-closed function that RE-COMPUTES an agent's trust score and tier from a validated proof-event chain, so a client's claimed tier can only be lowered, never raised. Reuses @vorionsys/basis-spec canonical formulas.",
+  "description": "BASIS reference library of verifiable primitives — self-certifying CAR identifiers and an RFC-6962 append-only Merkle transparency log, with fully OFFLINE, fail-closed verification (no server call, no DID resolution). A LIBRARY of primitives, not a running registry.",
   "keywords": [
     "ai",
     "agent",
     "governance",
     "trust",
-    "scorer",
-    "deterministic",
+    "transparency-log",
+    "rfc6962",
+    "merkle",
+    "did-key",
+    "self-certifying",
     "fail-closed",
     "basis"
   ],
@@ -16,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vorionsys/basis-spec.git",
-    "directory": "packages/basis-scorer"
+    "directory": "packages/basis-registry"
   },
   "bugs": "https://github.com/vorionsys/basis-spec/issues",
   "license": "Apache-2.0",
@@ -27,6 +30,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./identity": {
+      "types": "./dist/identity.d.ts",
+      "import": "./dist/identity.js"
+    },
+    "./log": {
+      "types": "./dist/log.d.ts",
+      "import": "./dist/log.js"
     }
   },
   "files": [

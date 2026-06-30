@@ -1,0 +1,61 @@
+{
+  "description": "GV-02 — single intent->decision->started->completed(success) at LOW risk under GRAY_BOX (ceiling 750). Locks the exact quantized gain from calculateGain(currentScore=0, ceiling=750, R=3).",
+  "policy": {
+    "observationTier": "GRAY_BOX",
+    "riskByActionType": { "db.read": "LOW" }
+  },
+  "expected": {
+    "recomputedScore": 0.477486,
+    "recomputedTier": "T0",
+    "observationCappedTier": "T0",
+    "effectiveTier": "T0",
+    "status": "OK",
+    "scoredEventCount": 1
+  },
+  "events": [
+    {
+      "eventId": "e-000001",
+      "eventType": "intent_received",
+      "correlationId": "corr-1",
+      "agentId": "agent-1",
+      "payload": { "type": "intent_received", "intentId": "i-1", "action": "read", "actionType": "db.read", "resourceScope": [] },
+      "previousHash": null,
+      "eventHash": "h-1",
+      "occurredAt": "2026-01-01T00:00:00Z",
+      "recordedAt": "2026-01-01T00:00:00Z"
+    },
+    {
+      "eventId": "e-000002",
+      "eventType": "decision_made",
+      "correlationId": "corr-1",
+      "agentId": "agent-1",
+      "payload": { "type": "decision_made", "decisionId": "d-1", "intentId": "i-1", "permitted": true, "trustBand": "T0", "trustScore": 0, "reasoning": [] },
+      "previousHash": null,
+      "eventHash": "h-2",
+      "occurredAt": "2026-01-01T00:00:01Z",
+      "recordedAt": "2026-01-01T00:00:01Z"
+    },
+    {
+      "eventId": "e-000003",
+      "eventType": "execution_started",
+      "correlationId": "corr-1",
+      "agentId": "agent-1",
+      "payload": { "type": "execution_started", "executionId": "x-1", "actionId": "a-1", "decisionId": "d-1", "adapterId": "adapter-1" },
+      "previousHash": null,
+      "eventHash": "h-3",
+      "occurredAt": "2026-01-01T00:00:02Z",
+      "recordedAt": "2026-01-01T00:00:02Z"
+    },
+    {
+      "eventId": "e-000004",
+      "eventType": "execution_completed",
+      "correlationId": "corr-1",
+      "agentId": "agent-1",
+      "payload": { "type": "execution_completed", "executionId": "x-1", "actionId": "a-1", "status": "success", "durationMs": 5, "outputHash": "out" },
+      "previousHash": null,
+      "eventHash": "h-4",
+      "occurredAt": "2026-01-01T00:00:03Z",
+      "recordedAt": "2026-01-01T00:00:03Z"
+    }
+  ]
+}
