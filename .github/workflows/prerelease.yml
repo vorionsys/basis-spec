@@ -24,6 +24,7 @@ on:
         options:
           - basis
           - basis-conformance
+          - basis-scorer
       dry_run:
         description: Skip the actual npm publish (build + test only)
         required: false
