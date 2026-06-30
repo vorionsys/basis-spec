@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/basis-spec",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "BASIS — open standard for AI agent trust and governance. Canonical parameters, formulas, and types.",
   "keywords": [
     "ai",
