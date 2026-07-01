@@ -10,22 +10,26 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const schemaPath = resolve(
-  here,
-  '..',
-  '..',
-  '..',
-  '..',
-  'schemas',
-  'attestation-v1.json',
-);
+// Repo checkout: schemas/ lives at the repo root (four levels up).
+// Installed package: `npm run build` copies schemas/ into dist/schemas
+// so the published tarball is self-sufficient (scripts/prepare-dist.mjs).
+const schemaCandidates = [
+  resolve(here, '..', '..', '..', '..', 'schemas', 'attestation-v1.json'),
+  resolve(here, '..', '..', 'dist', 'schemas', 'attestation-v1.json'),
+];
+const schemaPath = schemaCandidates.find((p) => existsSync(p));
+if (!schemaPath) {
+  throw new Error(
+    `attestation-v1.json not found; looked in:\n  ${schemaCandidates.join('\n  ')}`,
+  );
+}
 const schema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });
@@ -38,7 +42,7 @@ const validAttestation = {
   version: '0.1.0',
   releasedAt: '2026-04-25T14:30:00Z',
   conformanceSuite: {
-    name: '@vorionsys/basis-conformance',
+    name: '@vorionsys/basis-spec-conformance',
     version: '0.1.0',
     revision: '1a2b3c4d5e6f78',
   },

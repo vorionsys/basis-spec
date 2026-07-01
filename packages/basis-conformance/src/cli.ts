@@ -39,7 +39,8 @@ Usage:
 
 Options for 'run':
   --out PATH        Write the results JSON to PATH instead of stdout
-  --cwd DIR         Run vitest in DIR (default: current directory)
+  --cwd DIR         Run vitest in DIR (default: this package's own install
+                    directory, where the shipped test vectors live)
   --pretty          Pretty-print the JSON output (default: compact)
 
 Options for 'validate':
@@ -50,9 +51,12 @@ RFC-0002 fields) and does NOT emit any trust, compliance, or conformance
 verdict, nor verify signatures or recompute the hash chain.
 
 Exit codes:
-  0  All tests passed / manifest structurally well-formed
+  0  All tests passed (at least one test ran) / manifest structurally well-formed
   1  One or more tests failed / manifest has structural errors
-  2  Runner error (could not invoke vitest, read/parse the manifest, etc.)
+  2  Runner error (could not invoke vitest, ZERO tests discovered,
+     could not read/parse the manifest, etc.)
+
+FAIL-CLOSED: a run that discovers zero tests is never a pass — it exits 2.
 `;
 
 async function main(): Promise<void> {
@@ -99,14 +103,25 @@ async function main(): Promise<void> {
   const outIdx = argv.indexOf('--out');
   const cwdIdx = argv.indexOf('--cwd');
   const out = outIdx >= 0 ? argv[outIdx + 1] : null;
-  const cwd = cwdIdx >= 0 ? argv[cwdIdx + 1] : process.cwd();
+  // No --cwd -> let the runner default to the package's own install
+  // directory (where the shipped test vectors live).
+  const cwd = cwdIdx >= 0 ? argv[cwdIdx + 1] : undefined;
   const pretty = argv.includes('--pretty');
 
   let results;
   try {
-    results = await runConformance({ cwd });
+    results = await runConformance(cwd ? { cwd } : {});
   } catch (err) {
     process.stderr.write(`runner error: ${(err as Error).message}\n`);
+    process.exit(2);
+  }
+
+  // Defense in depth: the runner already rejects on zero discovered
+  // tests, but never let an empty run masquerade as a pass here either.
+  if (results.total === 0) {
+    process.stderr.write(
+      'runner error: conformance suite discovered 0 tests — refusing to report success (fail-closed)\n',
+    );
     process.exit(2);
   }
 

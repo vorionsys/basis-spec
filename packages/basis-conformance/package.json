@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/basis-spec-conformance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "BASIS conformance test suite — runs against @vorionsys/basis-spec to verify the spec is internally coherent. Vendor-endpoint mode coming in v0.2.",
   "keywords": [
     "ai",
@@ -39,11 +39,13 @@
   },
   "files": [
     "dist",
+    "src",
+    "vitest.config.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/prepare-dist.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -54,12 +56,12 @@
     "@vorionsys/basis-spec": "^1.2.0",
     "ajv": "^8.17.0",
     "ajv-formats": "^3.0.0",
+    "vitest": "^2.1.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^2.1.0"
+    "typescript": "^5.4.0"
   },
   "engines": {
     "node": ">=18"

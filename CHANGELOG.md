@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [@vorionsys/basis-spec-conformance@0.1.1] — 2026-07-01
+
+### Fixed
+- **Fail closed on zero discovered tests** — a run that discovers 0 tests now prints an error to stderr and exits `2` instead of exiting `0` ("all tests passed"). The 0.1.0 tarball shipped without the test vectors (`files` listed only `dist`/`README.md`/`LICENSE`), so a consumer install ran zero tests and still reported success. `runConformance()` now also rejects on an empty run.
+- **Published tarball is now self-sufficient** — `src/` (test vectors + fixtures) and `vitest.config.ts` ship in the package; the repo-root `schemas/` directory is copied into `dist/schemas` at build time; `vitest` moved from devDependencies to dependencies and the runner resolves the locally installed vitest binary (npx fallback); the runner's default working directory is now the installed package root (override with `--cwd`), so `npx basis-conformance run` works from anywhere.
+- **Real revision stamping** — `npm run build` now writes `dist/revision.json` with the git sha the build was cut from (`GITHUB_SHA` in CI, `git rev-parse HEAD` locally); results documents report that sha as `suite.revision` instead of the baked `dev-build` placeholder, which now appears only for unstamped local dev builds.
+- **`SUITE_NAME` corrected** to `@vorionsys/basis-spec-conformance` — results documents previously self-identified as `@vorionsys/basis-conformance`, a package name that does not exist on npm.
+
 ## Repo-level — 2026-04-25
 
 ### Added

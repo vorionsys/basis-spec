@@ -50,6 +50,22 @@ const results = await runConformance();
 console.log(`${results.passed}/${results.total} tests passed`);
 ```
 
+`runConformance()` rejects (throws) if the run discovers zero tests — an empty run is never returned as a passing result.
+
+### Exit codes (CLI)
+
+| Code | Meaning |
+|---|---|
+| `0` | `run`: all discovered tests passed (at least one test ran). `validate`: manifest structurally well-formed |
+| `1` | `run`: one or more tests failed. `validate`: manifest has structural errors |
+| `2` | Runner error: vitest could not be invoked, output could not be parsed, the manifest could not be read — or **zero tests were discovered** |
+
+**Fail-closed guarantee:** a run that discovers zero tests never exits `0`. It prints an error to stderr and exits `2`, because "no tests ran" is indistinguishable from "the suite is missing" and must never be reported as conformance.
+
+### Suite revision
+
+Every results document embeds `suite.revision`: the git commit sha of the source the build was cut from, stamped into the package at build time (`dist/revision.json`, written by `scripts/prepare-dist.mjs` from `GITHUB_SHA` in CI or `git rev-parse HEAD` locally). Unstamped local dev builds report `dev-build`. Verifiers should treat `dev-build` as untrusted and compare stamped revisions against known-good releases.
+
 ## How an attestation gets produced (forward look)
 
 ```text
