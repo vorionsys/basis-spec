@@ -2,7 +2,7 @@
   "name": "basis-spec-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "BASIS — Baseline Authority for Safe & Interoperable Systems. Open standard for AI agent trust and governance.",
+  "description": "BASIS — Baseline Authority for Safe & Interoperable Systems. Draft open standard proposal for AI agent trust and governance.",
   "license": "Apache-2.0",
   "workspaces": [
     "packages/*"
