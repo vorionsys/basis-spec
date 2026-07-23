@@ -8,6 +8,8 @@
 
 > **Versioning note:** the BASIS *standard* is at revision **0.9** (working draft; 1.0 ratification targeted 2027). npm package versions (e.g. `@vorionsys/basis-spec@1.2.x`) track this TypeScript distribution, not the standard revision.
 
+> **One standard, and how the gate artifacts relate:** **BASIS** (this repo) is the standard — canonical trust parameters, formulas, types, and the proof-chain RFCs. **BASIS Gate** ([`basis-gate`](https://github.com/vorionsys/basis-gate)) is a *companion specification under the BASIS umbrella* covering governance-pipeline composition (layer interface, execution modes, two-stage proof commits); it consumes BASIS trust semantics and does not redefine them. **[`gate-core`](https://github.com/vorionsys/gate-core)** is an *implementation*, not a spec — a minimal deterministic engine producing RFC-0002 proof chains. If a document here and one in basis-gate ever disagree on trust semantics, this repo wins.
+
 ## Packages
 
 | Package | Description |
