@@ -213,7 +213,7 @@ The RFC-0003 attestation format (companion document) describes how a runtime pub
 
 ## Implementation references
 
-- **Public reference impl (forthcoming):** `vorionsys/basis-conformance` will include a verifier that walks any chain and produces `ChainVerificationResult` per the rules above. The conformance test suite (also forthcoming) will validate that a runtime correctly seals, links, and signs a representative chain.
+- **Public reference impls (published):** `@vorionsys/verify` (bin `basis-verify`) walks any chain and produces a verification result per the rules above. `@vorionsys/basis-spec-conformance` (bin `basis-conformance`, shipped 2026-07) self-tests chain sealing, linkage, and canonical serialization against the spec; live-runtime conformance checks land in its v0.2.
 - **Vorion private impls** (`@vorionsys/proof-plane` and the audit-event subsystem of `cognigate-api`) emit events conforming to this RFC. The cryptographic operations (key management, batch sealing, Merkle tree commitments, TSA timestamping) are out of scope here — they are runtime business as long as the public output validates.
 
 ---

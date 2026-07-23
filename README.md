@@ -6,6 +6,8 @@
 
 **Baseline Authority for Safe & Interoperable Systems** — an open standard for AI agent trust and governance.
 
+> **Versioning note:** the BASIS *standard* is at revision **0.9** (working draft; 1.0 ratification targeted 2027). npm package versions (e.g. `@vorionsys/basis-spec@1.2.x`) track this TypeScript distribution, not the standard revision.
+
 ## Packages
 
 | Package | Description |
@@ -52,9 +54,9 @@ BASIS is a specification. The packages below implement it or build on it. The `@
 | Project | What it is | Install |
 |---|---|---|
 | [`basis-gate`](https://github.com/vorionsys/basis-gate) | Reference runtime for BASIS Gate v1 — posture resolver, block/inline/deferred executor, Ed25519 two-stage proof chain, and reference layers (identity, tier-check, rate-limit, proof-chain-tip, audit-log). | `npm i @vorionsys/basis-gate-runtime @vorionsys/basis-gate-industry` |
-| [`mcp-server`](https://github.com/voriongit/mcp-server) | Model Context Protocol server that wraps tool calls in a BASIS Gate pipeline so an MCP client's actions are governed and proof-chained. | *npm pkg withheld (IP review) — see repo* |
+| [`mcp-server`](https://github.com/vorionsys/mcp-server) | Model Context Protocol server that wraps tool calls in a BASIS Gate pipeline so an MCP client's actions are governed and proof-chained. | `npm i @vorionsys/mcp-server` |
 | [`vorion-find`](https://github.com/voriongit/vorion-find) | Zero-dep CLI that scans a device for AI agents and streams findings (proprietary; binary free to use — not Apache-2.0). | CLI — run from the repo (`npx` / download); not a library |
-| [`sdk`](https://github.com/vorionsys/sdk) | TypeScript client for building agents that emit BASIS-conformant actions and consume gate verdicts. | *npm pkg withheld (IP review) — see repo* |
+| [`sdk`](https://github.com/vorionsys/sdk) | TypeScript client for building agents that emit BASIS-conformant actions and consume gate verdicts. | `npm i @vorionsys/sdk` |
 
 **Run the reference runtime in ~50 lines** — a known agent's action is allowed and proof-chained; an unknown agent is denied by the identity rule; each verdict emits a signed proof-chain tip. See [`examples/minimal-governance.ts`](https://github.com/vorionsys/basis-gate/blob/HEAD/examples/minimal-governance.ts) (starter / reference use, not production-hardened):
 

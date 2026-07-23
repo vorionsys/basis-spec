@@ -11,10 +11,10 @@
 
 This RFC defines the **canonical signed scorecard** that a BASIS-compliant runtime publishes for each release. The scorecard records what conformance suite was run, what passed, what failed, and who signed off — so a buyer or auditor can verify a vendor's compliance claim without reading proprietary source code.
 
-Together with RFC-0002 (the public shape of audit events) and the forthcoming `@vorionsys/basis-spec-conformance` test suite, this is the third leg of public-trust verification:
+Together with RFC-0002 (the public shape of audit events) and the published `@vorionsys/basis-spec-conformance` test suite (shipped 2026-07; bin `basis-conformance`), this is the third leg of public-trust verification:
 
 1. RFC-0002 — what every event LOOKS like (the receipt format)
-2. `basis-conformance` — what every implementation must DO (the test suite)
+2. `@vorionsys/basis-spec-conformance` (bin `basis-conformance`) — what every implementation must DO (the test suite)
 3. **RFC-0003 — what every release SAYS about its conformance (this document)**
 
 A runtime claims BASIS conformance by publishing a signed attestation conforming to this RFC at a well-known URL on its own domain.
@@ -53,12 +53,12 @@ A conformance attestation is a single JSON document. Full schema in `schemas/att
 
   // The conformance suite the impl was tested against.
   "conformanceSuite": {
-    "name": "@vorionsys/basis-conformance",
+    "name": "@vorionsys/basis-spec-conformance",
     "version": "0.1.0",
     // Git sha of the suite source — the exact code that produced these results.
     "revision": "1a2b3c4d5e6f...",
     // Optional: URL where the suite source lives.
-    "source": "https://github.com/vorionsys/basis-conformance"
+    "source": "https://github.com/vorionsys/basis-spec/tree/main/packages/basis-conformance"
   },
 
   // Aggregate test results.
@@ -213,13 +213,14 @@ Conformance is a floor, not a ceiling. Buyers should treat it as one input along
 ## Implementation references
 
 - **JSON Schema:** `schemas/attestation-v1.json` in this repo. Anyone can `ajv compile` it and validate any attestation file.
-- **Reference signing tool (forthcoming):** `npx @vorionsys/basis-conformance attest --product Cognigate --version 0.1.0 --suite-results suite-output.json --key release-signing.pem` will produce a valid signed attestation. Slated for the basis-conformance v0.1 release.
-- **Reference verifier (forthcoming):** `npx @vorionsys/basis-conformance verify https://cognigate.dev/attestations/cognigate-0.1.0.json` will fetch + validate + signature-check + report. Same v0.1 release.
+- **Test suite (published):** `@vorionsys/basis-spec-conformance` shipped 2026-07 — `npx basis-conformance run` executes the suite and emits results JSON shaped for this RFC's `results` field; `npx basis-conformance validate <manifest.json>` structurally validates an external proof-chain manifest.
+- **Reference signing tool (forthcoming):** `basis-conformance attest --product Cognigate --version 0.1.0 --suite-results suite-output.json --key release-signing.pem` will produce a valid signed attestation. Not in the published v0.1 bin (which ships `run` and `validate` only).
+- **Reference verifier (forthcoming):** `basis-conformance verify https://cognigate.dev/attestations/cognigate-0.1.0.json` will fetch + validate + signature-check + report. Same future release.
 
 ---
 
 ## Open questions
 
 - **Transparency log integration.** Should attestations also be published to an append-only log (Sigstore Rekor, certificate transparency-style)? Useful for revocation discoverability; adds infrastructure dependency. Defer to v2 unless a concrete use case argues for it sooner.
-- **Standardized test ID namespace.** `tier-transition.t0-t1` is illustrative — the basis-conformance test suite will fix the actual ID format. This RFC defers to the suite.
+- **Standardized test ID namespace.** `tier-transition.t0-t1` is illustrative — the published basis-spec-conformance suite fixes the actual ID format. This RFC defers to the suite.
 - **Multi-signature attestations.** A consortium attestation (multiple auditors co-signing) is plausible but out of scope here. Could ride on `details: [{signature, signedBy}, ...]` in v2.
