@@ -15,6 +15,21 @@
 #   basis-conformance -> @vorionsys/basis-spec-conformance
 #   basis-scorer      -> @vorionsys/basis-scorer
 #   basis-registry    -> @vorionsys/basis-registry
+#   basis-quorum      -> @vorionsys/basis-quorum        (NEW, never published)
+#   basis-plan        -> @vorionsys/basis-plan          (NEW, never published)
+#   basis-merkle      -> @vorionsys/basis-merkle        (NEW, never published)
+#
+# FIRST PUBLISH OF A NEW PACKAGE: the trusted-publisher binding above is
+# configured under an EXISTING package's settings, so a package that has never
+# been published has nowhere to configure it. Check npm's current behaviour
+# before assuming this workflow can create these three — if it cannot, the
+# first publish needs a different path, and `provenance: true` in their
+# package.json will refuse a classic token publish. Do not silently drop
+# provenance to get around it; that is the attestation the whole point rests on.
+#
+# PUBLISH ORDER MATTERS: @vorionsys/basis-spec@1.3.0 must land BEFORE
+# basis-quorum / basis-plan / basis-merkle, which all depend on ^1.3.0.
+# Publishing them first ships packages whose dependency cannot resolve.
 
 name: Release
 
@@ -33,6 +48,9 @@ on:
           - basis-conformance
           - basis-scorer
           - basis-registry
+          - basis-quorum
+          - basis-plan
+          - basis-merkle
 
 permissions:
   contents: read
