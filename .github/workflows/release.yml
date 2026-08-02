@@ -19,13 +19,30 @@
 #   basis-plan        -> @vorionsys/basis-plan          (NEW, never published)
 #   basis-merkle      -> @vorionsys/basis-merkle        (NEW, never published)
 #
-# FIRST PUBLISH OF A NEW PACKAGE: the trusted-publisher binding above is
-# configured under an EXISTING package's settings, so a package that has never
-# been published has nowhere to configure it. Check npm's current behaviour
-# before assuming this workflow can create these three — if it cannot, the
-# first publish needs a different path, and `provenance: true` in their
-# package.json will refuse a classic token publish. Do not silently drop
-# provenance to get around it; that is the attestation the whole point rests on.
+# FIRST PUBLISH OF A NEW PACKAGE — npm has no "pending publisher" concept.
+# The binding above is configured at
+#   npmjs.com -> Packages -> YOUR_PACKAGE -> Settings -> Trusted publishing
+# which needs a package page, and a never-published package has none. npm's own
+# docs are silent on this rather than stating it; the evidence is the config
+# path itself, plus the existence of tools whose whole job is publishing a
+# placeholder so OIDC can then be configured. PyPI supports pending publishers;
+# npm is repeatedly contrasted against it here. Worth re-checking in the npm UI
+# before a release, in case it has shipped since.
+#
+# The bootstrap does NOT cost provenance. Provenance needs a supported CI with
+# `id-token: write` — that is what signs the Sigstore attestation — and is
+# independent of how you AUTHENTICATE. A granular token in Actions plus
+# `npm publish --provenance` is a documented pattern that predates trusted
+# publishing. So:
+#
+#   1. first publish from Actions with a short-lived granular NPM_TOKEN,
+#      keeping --provenance
+#   2. configure trusted publishing on the now-existing package
+#   3. revoke the token; subsequent releases go tokenless via OIDC
+#
+# Never drop `provenance: true` to get a publish through. It is the attestation
+# these packages' entire "verify it yourself" claim rests on, and it was never
+# the thing blocking you.
 #
 # PUBLISH ORDER MATTERS: @vorionsys/basis-spec@1.3.0 must land BEFORE
 # basis-quorum / basis-plan / basis-merkle, which all depend on ^1.3.0.
