@@ -1,0 +1,7 @@
+{
+  "did:vorion:validator:alpha#ed25519": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+  "did:vorion:validator:beta#ed25519": "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0",
+  "did:vorion:validator:gamma#ed25519": "17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce",
+  "did:vorion:validator:delta#ed25519": "d759793bbc13a2819a827c76adb6fba8a49aee007f49f2d0992d99b825ad2c48",
+  "did:vorion:quorum:prod-destructive#frost-ed25519": "2aad9f189368d6cb87f8de8b1212d9375f4563705923089a7b5a9e77403954ea"
+}

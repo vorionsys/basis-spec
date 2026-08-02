@@ -11,4 +11,4 @@
 # from re-canonicalized JSON values, never from the raw file bytes — but a
 # noisy diff hides real changes, which is the thing these vectors exist to
 # make visible.)
-packages/basis-conformance/vectors/*.json text eol=lf
+packages/*/vectors/*.json text eol=lf

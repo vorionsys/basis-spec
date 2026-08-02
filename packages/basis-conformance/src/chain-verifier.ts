@@ -37,74 +37,33 @@
 
 import { createHash, createPublicKey, verify as cryptoVerify } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
+import {
+  canonicalize,
+  canonicalEventString,
+  type HashableEventFields,
+} from '@vorionsys/basis-spec';
 
 // ---------------------------------------------------------------------------
 // Canonical serialization (RFC-0002 §"Canonical serialization")
 // ---------------------------------------------------------------------------
 
 /**
- * Reference canonicalizer per RFC-0002:
- *   - object keys sorted in ASCII-byte order
- *   - no whitespace
- *   - numbers as the shortest decimal that round-trips (JS `String(n)`)
- *   - finite numbers only — Infinity/NaN throw
- *   - `null` preserved; `undefined` keys omitted
- *
- * Exported so vendor implementations can hash the EXACT same bytes this
- * verifier does. Cross-impl byte equality is the whole point: if two
- * runtimes disagree here, their chains cannot be verified against each other.
+ * The canonicalizer is NORMATIVE and lives in `@vorionsys/basis-spec`
+ * alongside the proof-event types, so that the verifier, the quorum
+ * reference implementation, and any vendor runtime hash identical bytes by
+ * construction rather than by careful re-implementation. It is re-exported
+ * here because this package has been its public entry point since v0.2.0.
  */
-export function canonicalize(value: unknown): string {
-  if (value === null) return 'null';
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      throw new Error('canonical JSON requires finite numbers');
-    }
-    return String(value);
-  }
-  if (typeof value === 'string') return JSON.stringify(value);
-  if (typeof value === 'boolean') return value ? 'true' : 'false';
-  if (Array.isArray(value)) {
-    return '[' + value.map(canonicalize).join(',') + ']';
-  }
-  if (typeof value === 'object') {
-    const v = value as Record<string, unknown>;
-    const keys = Object.keys(v)
-      .filter((k) => v[k] !== undefined)
-      .sort();
-    const parts = keys.map((k) => JSON.stringify(k) + ':' + canonicalize(v[k]));
-    return '{' + parts.join(',') + '}';
-  }
-  throw new Error(`canonical JSON does not support type ${typeof value}`);
-}
+export { canonicalize, canonicalEventString, type HashableEventFields };
 
 /**
- * The subset of an event that is covered by the hash, per RFC-0002:
- * `previousHash`, `eventType`, `agentId` (empty string when absent),
- * `occurredAt`, `payload`. Everything else (`eventId`, `recordedAt`,
- * `signedBy`, `signature`, the hashes themselves, and the shadow-mode trio)
- * is attached AFTER the hash is sealed and is therefore excluded.
+ * UTF-8 bytes of the canonical event string — the exact hash/signature input.
  *
- * Returns the canonical JSON string whose UTF-8 bytes are hashed.
+ * Returns a `Buffer` (rather than the spec package's platform-neutral
+ * `Uint8Array`) because that has been this function's published return type
+ * since v0.2.0 and consumers may depend on Buffer methods.
  */
-export function canonicalEventString(event: {
-  previousHash: string | null;
-  eventType: string;
-  agentId?: string | null;
-  occurredAt: string;
-  payload: unknown;
-}): string {
-  return canonicalize({
-    agentId: event.agentId ?? '',
-    eventType: event.eventType,
-    occurredAt: event.occurredAt,
-    payload: event.payload,
-    previousHash: event.previousHash,
-  });
-}
-
-/** UTF-8 bytes of the canonical event string — the exact hash/signature input. */
-export function canonicalEventBytes(event: Parameters<typeof canonicalEventString>[0]): Buffer {
+export function canonicalEventBytes(event: HashableEventFields): Buffer {
   return Buffer.from(canonicalEventString(event), 'utf-8');
 }
 

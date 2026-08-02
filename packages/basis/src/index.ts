@@ -6,5 +6,6 @@
  */
 
 export * from './canonical.js';
+export * from './canonical-json.js';
 export * from './types.js';
 export * from './proof-chain.js';

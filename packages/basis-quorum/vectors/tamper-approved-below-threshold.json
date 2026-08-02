@@ -1,0 +1,190 @@
+[
+  {
+    "eventId": "bb00-0000-4000-8000-000000000000",
+    "eventType": "quorum_requested",
+    "correlationId": "e8b1d2c3-4a5f-4b6c-8d9e-0f1a2b3c4d5e",
+    "agentId": "agent:proposer-01",
+    "payload": {
+      "type": "quorum_requested",
+      "quorumId": "q-rejected-0001",
+      "intentId": "i-9f3a2b1c-7d6e-4f5a-8b9c-0d1e2f3a4b5c",
+      "policyId": "basis_risk_thresholds:life_critical_requires_quorum",
+      "threshold": {
+        "m": 3,
+        "n": 4
+      },
+      "validatorSet": [
+        {
+          "validatorId": "did:vorion:validator:alpha#ed25519",
+          "publicKey": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+          "attributes": {
+            "independence": "family-a"
+          }
+        },
+        {
+          "validatorId": "did:vorion:validator:beta#ed25519",
+          "publicKey": "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0",
+          "attributes": {
+            "independence": "family-b"
+          }
+        },
+        {
+          "validatorId": "did:vorion:validator:gamma#ed25519",
+          "publicKey": "17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce",
+          "attributes": {
+            "independence": "family-c"
+          }
+        },
+        {
+          "validatorId": "did:vorion:validator:delta#ed25519",
+          "publicKey": "d759793bbc13a2819a827c76adb6fba8a49aee007f49f2d0992d99b825ad2c48",
+          "attributes": {
+            "independence": "policy-engine"
+          }
+        }
+      ],
+      "escalationReason": {
+        "riskLevel": "LIFE_CRITICAL",
+        "proposerTier": "T5",
+        "actionType": "db.schema.destructive"
+      },
+      "deadline": "2026-08-02T14:00:30.000Z"
+    },
+    "previousHash": null,
+    "eventHash": "d5f8f4d603e84b0021bcbe8e5975af5f211fb9babf491192417bb3de063d6a3c",
+    "eventHash3": "fb451159346d50d97b70603e2d99ea4d77ce4f147c7a4a5585be611788539080",
+    "occurredAt": "2026-08-02T14:00:00.000Z",
+    "recordedAt": "2026-08-02T14:00:00.000Z",
+    "shadowMode": "production"
+  },
+  {
+    "eventId": "bb01-0000-4000-8000-000000000000",
+    "eventType": "validator_vote",
+    "correlationId": "e8b1d2c3-4a5f-4b6c-8d9e-0f1a2b3c4d5e",
+    "agentId": "agent:proposer-01",
+    "payload": {
+      "type": "validator_vote",
+      "quorumId": "q-rejected-0001",
+      "validatorId": "did:vorion:validator:alpha#ed25519",
+      "vote": "reject",
+      "rationale": "irreversible destruction of a production ledger; no restore point cited",
+      "evidence": [
+        {
+          "kind": "policy-check",
+          "source": "basis_core_security",
+          "version": "1.4.0",
+          "fired": true
+        }
+      ],
+      "votedAt": "2026-08-02T14:00:00.100Z"
+    },
+    "previousHash": "d5f8f4d603e84b0021bcbe8e5975af5f211fb9babf491192417bb3de063d6a3c",
+    "eventHash": "75e0f00337a41814c5fcb92504dc9a665cf63c1c6f7175c42cf0a21d919602d9",
+    "eventHash3": "243e4bb569eace1832d307faf8de917c1f8197ac21bb56771c3d0cc8e6f2814c",
+    "occurredAt": "2026-08-02T14:00:00.100Z",
+    "recordedAt": "2026-08-02T14:00:00.100Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:validator:alpha#ed25519",
+    "signature": "n2FsZYl6RcojT40DW22agUHZ5K9meyhtqkdX7pB8hJYUcq4yrJVK8uAOrulSxq/khwjbF+zkI4p7yDXPvrQhBA=="
+  },
+  {
+    "eventId": "bb02-0000-4000-8000-000000000000",
+    "eventType": "validator_vote",
+    "correlationId": "e8b1d2c3-4a5f-4b6c-8d9e-0f1a2b3c4d5e",
+    "agentId": "agent:proposer-01",
+    "payload": {
+      "type": "validator_vote",
+      "quorumId": "q-rejected-0001",
+      "validatorId": "did:vorion:validator:beta#ed25519",
+      "vote": "reject",
+      "rationale": "resource scope names a financial system of record",
+      "evidence": [
+        {
+          "kind": "policy-check",
+          "source": "basis_core_security",
+          "version": "1.4.0",
+          "fired": true
+        }
+      ],
+      "votedAt": "2026-08-02T14:00:00.200Z"
+    },
+    "previousHash": "75e0f00337a41814c5fcb92504dc9a665cf63c1c6f7175c42cf0a21d919602d9",
+    "eventHash": "e51735681580cc232a5c5995212e1884c4f8b899e81d37a27569fd3b98d60cff",
+    "eventHash3": "7dc276370992d61293c3e888420b39c92d8a4e5ce4b8f599b3a5099912fc7c1b",
+    "occurredAt": "2026-08-02T14:00:00.200Z",
+    "recordedAt": "2026-08-02T14:00:00.200Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:validator:beta#ed25519",
+    "signature": "HL91UagEwXLVl8nxQWnZ4cuuSA8cMzOsKLcOveDA7ZBOrizt8F2T6U7G9vt5EhW7wrwrUseGSOcOiMBjvUG1BQ=="
+  },
+  {
+    "eventId": "bb03-0000-4000-8000-000000000000",
+    "eventType": "validator_vote",
+    "correlationId": "e8b1d2c3-4a5f-4b6c-8d9e-0f1a2b3c4d5e",
+    "agentId": "agent:proposer-01",
+    "payload": {
+      "type": "validator_vote",
+      "quorumId": "q-rejected-0001",
+      "validatorId": "did:vorion:validator:gamma#ed25519",
+      "vote": "approve",
+      "rationale": "matches approved decommission ticket",
+      "evidence": [
+        {
+          "kind": "policy-check",
+          "source": "basis_core_security",
+          "version": "1.4.0",
+          "fired": false
+        }
+      ],
+      "votedAt": "2026-08-02T14:00:00.300Z"
+    },
+    "previousHash": "e51735681580cc232a5c5995212e1884c4f8b899e81d37a27569fd3b98d60cff",
+    "eventHash": "51ea78be2d38aaca4341ecd8d7dfa7e116f0f35ef3987d122e13e47558876890",
+    "eventHash3": "62fc385ce48a2e4898c6a81f8e1d813cff33be34ebfdfd1f3008ae607324d4e3",
+    "occurredAt": "2026-08-02T14:00:00.300Z",
+    "recordedAt": "2026-08-02T14:00:00.300Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:validator:gamma#ed25519",
+    "signature": "R+o4799n6kXcyZQEr0WzRdWn9qxG4NRUuWyV1o6AlaWqb0kqOb2+b34xxke3i1vC7cWVo5E9T4hI39rM2fWUAQ=="
+  },
+  {
+    "eventId": "cc00-0000-4000-8000-000000000000",
+    "eventType": "quorum_resolved",
+    "correlationId": "e8b1d2c3-4a5f-4b6c-8d9e-0f1a2b3c4d5e",
+    "agentId": "agent:proposer-01",
+    "payload": {
+      "type": "quorum_resolved",
+      "quorumId": "q-rejected-0001",
+      "outcome": "approved",
+      "threshold": {
+        "m": 3,
+        "n": 4
+      },
+      "tally": {
+        "approve": 1,
+        "reject": 2,
+        "abstain": 0,
+        "noResponse": 1
+      },
+      "votesRecorded": [
+        "bb01-0000-4000-8000-000000000000",
+        "bb02-0000-4000-8000-000000000000",
+        "bb03-0000-4000-8000-000000000000"
+      ],
+      "noResponders": [
+        "did:vorion:validator:delta#ed25519"
+      ],
+      "signatureScheme": "FROST-ED25519-SHA512-v1",
+      "groupPublicKey": "b63562ea44c646f2f58ae5a645c99c57317152b67a6592556e42dbb2d2b74115",
+      "resolvedAt": "2026-08-02T14:00:00.400Z"
+    },
+    "previousHash": "51ea78be2d38aaca4341ecd8d7dfa7e116f0f35ef3987d122e13e47558876890",
+    "eventHash": "becf565986b1f130781d306eeffb3a49b11d920faf480c49c25fb05510108945",
+    "eventHash3": "73e1df39de757099b420fdf4f39ab77d621d2cd8aa020267c2aa3e08c25a46e7",
+    "occurredAt": "2026-08-02T14:00:00.400Z",
+    "recordedAt": "2026-08-02T14:00:00.400Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:quorum:prod-destructive#frost-ed25519",
+    "signature": "7UTZ17kxzpp7EJcZ+itUxfFqQE9bCbB4iI/jNV6tDAVeiirbgjHZM7olOnA/DjaXJatWgoXhB3wQCpIyatX4AQ=="
+  }
+]

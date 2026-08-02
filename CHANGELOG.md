@@ -2,6 +2,31 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [@vorionsys/basis-quorum@0.1.0] — 2026-08-02
+
+First release. Public reference implementation of RFC-0005 — *m*-of-*n* threshold authorization for high-consequence agent actions.
+
+### Added
+- **Real distributed key generation** (`createGroupViaDkg`) over `@noble/curves` `ed25519_FROST` (RFC 9591). No dealer, so no single party — including the coordinator — ever holds the group private key. Degenerate thresholds are rejected at construction: `m < 2` ("a quorum of one is not a quorum"), `m > n`, single-member sets, and duplicate validator ids, which would otherwise double-count toward the threshold.
+- **Round orchestration** (`runQuorumRound`) emitting the three RFC-0005 event types. Votes are collected concurrently and **blindly** — no validator is given another's result — and chained in *declared validator order* rather than completion order, so a round is reproducible regardless of how the async races resolve.
+- **`verifyQuorumRound()`** — the coherence pass. Tally reconciliation against chained votes, validator-set accounting, outcome/threshold consistency, ordering, and deadline.
+- **`createLocalValidator` / `buildKeyring`** — reference validator holding its own Ed25519 key, and the keyring helper for chain verification.
+- **Golden vectors** — two valid rounds (approved; rejected-with-dissent) and four tampered variants. Deterministic via seeded DRBG, fixed key seeds, and a fixed clock, so regeneration is byte-identical. `scripts/generate-vectors.mjs` carries its **own** canonicalizer written from the RFC-0002 text and re-derives every `eventHash` with it; generation fails if the two implementations disagree.
+- 19 tests. Conformance suite unaffected at 110/110.
+
+### Notes
+- **The tampered vectors pass `verifyChain()`.** This is the point, and it is verified in the test suite: a coordinator that doctors a resolution can recompute its hash and re-attest it with the group key, producing a chain whose hashes, linkage and signatures are all flawless. `basis-conformance verify --require-signatures` exits **0** on `tamper-approved-below-threshold.json`. Integrity verification alone would accept a forged approval; only the quorum pass catches it. Two passes are required, and the vectors are the proof rather than the assertion.
+- **The attribution check cannot live in the chain verifier.** `verifyChain()` verifies a signature against a supplied keyring but has no way to know which validator a vote was *supposed* to come from — given a ring containing both keys, validator A's vote signed with B's key verifies as valid. `verifyQuorumRound()` compares `signedBy` against the payload's `validatorId`, which is what actually binds a vote to its author.
+- **Known limitation, documented rather than papered over:** the chain cannot distinguish a suppressed vote from a genuine non-response. A coordinator that drops a dissent *and* relabels that validator as a non-responder produces an internally consistent record. The defence is procedural — validators retain their signed votes and may publish independently, and a validator-signed vote absent from the chain is direct evidence of suppression. The naive version (dropping without relabelling) *is* caught, and `tamper-suppressed-dissent.json` pins that.
+- The optional `rng` parameter exists solely to make vectors byte-stable and is documented as fixtures-only in the type, the README, and every call site. FROST nonce reuse leaks key material.
+
+## [@vorionsys/basis-spec@1.3.0] — 2026-08-02
+
+### Added
+- **Canonical JSON serialization hoisted into the spec package** (`canonical-json.ts`): `canonicalize`, `canonicalEventString`, `canonicalEventBytes`, and the `HashableEventFields` type. It had lived in `basis-spec-conformance`'s chain verifier since 0.2.0, which meant a second consumer (the quorum reference implementation) would have had to either depend on a test suite or re-implement it. Byte-identity is the property every other guarantee rests on, and a second implementation is a second chance to diverge — so the normative serializer now sits alongside the proof-event types it serializes.
+
+  `basis-spec-conformance` re-exports all three, so its public API is unchanged; `canonicalEventBytes` there still returns a `Buffer` (rather than the spec package's platform-neutral `Uint8Array`) because that has been its published return type since 0.2.0. Verified non-breaking: the pre-existing golden vectors, sealed under the old code path, still verify byte-identically, and the suite stays at 110/110.
+
 ## Repo-level — 2026-08-02
 
 ### Added
