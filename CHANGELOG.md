@@ -2,6 +2,26 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [@vorionsys/basis-merkle@0.1.0] — 2026-08-02
+
+First release. Public reference implementation of RFC-0007 — chain compaction and Merkle selective disclosure. Pure SHA-256 + the Ed25519 signatures already in use; no trusted setup, no pairings, no new cryptographic assumptions.
+
+### Added
+- **Canonical Merkle construction** — domain-separated leaves (`0x00`) and internal nodes (`0x01`), leaves in chain order, odd nodes **promoted rather than duplicated**.
+- **Audit paths** — `auditPath` / `foldPath` / `verifyPath`, O(log n) per leaf, pure and dependency-free so a third party can re-implement from the RFC in any language.
+- **`buildCompaction` / `buildDisclosure` / `verifyDisclosure` / `verifyAgainstRange`** — compaction payload construction (unsigned; signing belongs to the key holder), self-contained disclosure packages, and a cross-check for verifiers that still hold the range.
+- 39 tests.
+
+### Notes
+- **Two known Merkle defects are pinned by test**, because each produces distinct leaf sequences that share a root — which would let a compactor swap a range's contents while keeping its attested root:
+  1. *Second-preimage.* Without domain separators, leaf and node hashes share a space and an internal node can be presented as a leaf. RFC 6962 uses the same construction for the same reason.
+  2. *CVE-2012-2459.* Duplicating an odd last node makes `[a,b,c]` and `[a,b,c,c]` produce an **identical** root. The test asserts the roots differ *and* spells out the value the buggy construction would have produced, so a refactor reintroducing duplication fails loudly rather than silently.
+- **Verification levels are mandatory.** `full` / `attested` / `none`, reported on every result — two verifiers holding different data can both be correct and reach different conclusions, so a bare `valid: true` is misleading and non-conforming. `leafCount` accompanies `disclosedCount` for the same reason: 3-of-4 and 3-of-40,000 are very different artefacts.
+- **Fail-closed:** zero-leaf trees and zero-length compactions are refused (an empty compaction is indistinguishable from a suppressed range); non-contiguous ranges are refused (compacting an arbitrary selection would attest to a range that never existed); an unsigned compaction attests nothing; a missing public key is never a silent pass; a root mismatch against a held range fails even when every individual event is intact.
+- **A test fixture bug, not a code bug, cost one red test and is now documented.** A leaf covers the canonical bytes, which RFC-0002 deliberately excludes `eventId` from. Two events differing only in their id therefore produce the same leaf, so a fixture varying only the id is *not* constructing a different range. Within a real chain this cannot collide because `previousHash` differs. There is now an explicit test pinning the property.
+- Salting is optional and default-off — it adds real operational burden, and a lost salt means that leaf can never be proved again. A salted disclosure missing its salt is rejected explicitly rather than silently failing membership.
+- Not zero-knowledge, and the README and module docs say so: path hashes, range size, and leaf position all travel with a disclosure.
+
 ## [@vorionsys/basis-plan@0.1.0] — 2026-08-02
 
 First release. Public reference implementation of RFC-0006 — symbolic verification of multi-step agent execution plans.

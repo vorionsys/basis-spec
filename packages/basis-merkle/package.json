@@ -1,0 +1,27 @@
+{
+  "name": "@vorionsys/basis-merkle",
+  "version": "0.1.0",
+  "description": "Public reference implementation of BASIS RFC-0007 — chain compaction and Merkle selective disclosure. Collapse a range of proof events into one signed root, then prove a specific decision sits under it without revealing the rest. Pure hash + Ed25519, no trusted setup.",
+  "keywords": ["ai","agent","governance","merkle","selective-disclosure","audit","compaction","basis"],
+  "homepage": "https://vorion.org",
+  "repository": { "type": "git", "url": "git+https://github.com/vorionsys/basis-spec.git", "directory": "packages/basis-merkle" },
+  "bugs": { "url": "https://github.com/vorionsys/basis-spec/issues" },
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist","src","vectors","README.md","LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "vectors": "node scripts/generate-vectors.mjs",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": { "@vorionsys/basis-spec": "^1.3.0" },
+  "devDependencies": { "@types/node": "^22.0.0", "typescript": "^5.4.0", "vitest": "^2.1.0" },
+  "engines": { "node": ">=18" },
+  "author": "Vorion LLC",
+  "publishConfig": { "access": "public", "provenance": true }
+}
