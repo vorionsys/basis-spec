@@ -2,6 +2,28 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [@vorionsys/basis-plan@0.1.0] — 2026-08-02
+
+First release. Public reference implementation of RFC-0006 — symbolic verification of multi-step agent execution plans.
+
+### Added
+- **`encodePlan()`** — compiles a plan DAG plus its invariants into SMT-LIB2. The program is satisfiable **exactly when some executable path violates some invariant**, so `unsat` is the safe answer. That polarity is deliberate: asking the solver to *find a violation* rather than to *confirm safety* makes an undecided solve conservative — `unknown` denies instead of falsely reporting safety. Output is deterministic (sorted declarations, fixed formatting) so the published artefact has a stable content hash, and readable on purpose — an auditor sees their own resource names in it.
+- **`verifyPlan()` / `verifyEncoded()`** — Z3 driver via `z3-solver@5.0.0` (WASM, no Python sidecar). Publishes the exact program solved, its sha256, solver name, version, and seed, so a third party re-runs the solve without trusting the runtime that produced it.
+- Invariants: `bound` (linear over accumulators), `forbid` (resource untouched on any path), `never_after` (ordering/taint — catches read-restricted-then-write-external), `predicate`.
+- Symbolic quantities with optional bounds.
+- 17 tests covering composition, sequencing, branch coverage, and the encoder guards.
+
+### Notes
+- **Two solver traps, both found by testing Z3 rather than trusting it, and both producing a FALSE SAFE** — the one direction a verification tool must never fail in. Each has a regression test.
+
+  1. *Context state leaks.* `eval_smtlib2_string` retains declarations and `set-logic` across calls on the same context. A genuinely violating plan was observed reporting `unsat` — safe — purely from the previous solve's leftover state. Every solve now runs in a fresh context.
+  2. *Errors do not stop the solve.* A malformed program emits `(error ...)` and then **continues**, printing a result derived from whatever it parsed; a broken program was observed printing `sat` after erroring. Any `(error` now forces `inconclusive`, and output is never read past it.
+
+  The strict single-token output classifier applies to the **decision** run only. The diagnostic run that extracts a counterexample legitimately produces a model and value bindings, and is read separately — conflating the two silently dropped every counterexample until it was caught by a failing test.
+- **A plan with no invariants is refused**, rather than returning `proved_safe`. A verdict with nothing checked is unfalsifiable. Cycles are rejected rather than approximated, since acyclicity is what keeps the obligation decidable.
+- **An unbounded symbol cannot satisfy a bound** and yields a counterexample. That is correct — you cannot prove a limit over a quantity you never constrained — and it is documented rather than hidden.
+- The RFC was corrected to match the implementation: invariants carry a required `id` (without it `invariantsChecked` cannot name anything and the verdict is unfalsifiable), `symbols` is part of the plan, and `assign` values are integers since v1 encodes in QF_LIA.
+
 ## [@vorionsys/basis-quorum@0.1.0] — 2026-08-02
 
 First release. Public reference implementation of RFC-0005 — *m*-of-*n* threshold authorization for high-consequence agent actions.
