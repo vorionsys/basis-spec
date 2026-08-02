@@ -1,0 +1,84 @@
+[
+  {
+    "eventId": "0f8c2d41-6b57-4e29-a3f1-2c9d5e7a1b04",
+    "eventType": "intent_received",
+    "correlationId": "5f2b0c7a-1d3e-4a89-9c11-8e6b2a4d7f30",
+    "agentId": "agent:reference-01",
+    "payload": {
+      "type": "intent_received",
+      "intentId": "b71e4c90-52a8-4d63-91f7-0e3a8c6d25f1",
+      "action": "Write the quarterly summary row to the reporting table",
+      "actionType": "db.write",
+      "resourceScope": [
+        "db:reporting.quarterly_summary"
+      ],
+      "riskLevel": "MEDIUM"
+    },
+    "previousHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "eventHash": "182748adaeb78d25b1a4fa22e934409fdb1e8895cbd0953daa16e2459678da3a",
+    "eventHash3": "a14993367b61debba83fd742d66d99fb53530b0cb8a93836676ff7519f0d0b45",
+    "occurredAt": "2026-08-01T12:00:00.000Z",
+    "recordedAt": "2026-08-01T12:00:00.014Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:reference-runtime#ed25519-1",
+    "signature": "GroJY+zmEoplLKCg9ANirht04HaQpTkj83YvfldHsD9WebBXCciNrupiQBcIvqphn9Ql1hC16d4nyi4xsAU3BQ=="
+  },
+  {
+    "eventId": "1a9e3f52-7c68-4f3a-b402-3da6f8b09c15",
+    "eventType": "decision_made",
+    "correlationId": "5f2b0c7a-1d3e-4a89-9c11-8e6b2a4d7f30",
+    "agentId": "agent:reference-01",
+    "payload": {
+      "type": "decision_made",
+      "decision": "allow",
+      "policyId": "basis_core_security",
+      "rationale": "actionType db.write is within T3 scoped-write authority"
+    },
+    "previousHash": "182748adaeb78d25b1a4fa22e934409fdb1e8895cbd0953daa16e2459678da3a",
+    "eventHash": "7dfb12abdf57da61d08a8551f713bf803affa5d5c53c3eefb345c84f82dfff42",
+    "eventHash3": "4452a9d4887b35f801b87b87f6014884d6fb409c56865833a1c6c6d6ca3dafd6",
+    "occurredAt": "2026-08-01T12:00:00.021Z",
+    "recordedAt": "2026-08-01T12:00:00.029Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:reference-runtime#ed25519-1",
+    "signature": "AUqIYt3GY+tMjGaQE/sep1l3/usYccarNZhYTxPc4Y1tZmf4bmhyV+hX0Fcg4V1QhQyXmKcJaTtMxleafnaGBg=="
+  },
+  {
+    "eventId": "2b7d4a63-8e79-4a4b-c513-4eb7a9c1ad26",
+    "eventType": "execution_started",
+    "correlationId": "5f2b0c7a-1d3e-4a89-9c11-8e6b2a4d7f30",
+    "agentId": "agent:reference-01",
+    "payload": {
+      "type": "execution_started",
+      "executionId": "exec-7741"
+    },
+    "previousHash": "7dfb12abdf57da61d08a8551f713bf803affa5d5c53c3eefb345c84f82dfff42",
+    "eventHash": "c119a97a50f5a79ea10ae81ec13a5fbc5676c287d56c586eed1cde93f53bb1ac",
+    "eventHash3": "90965ceaf3e3e986a5490512e05157a0d417f89b9185a274814836e218189799",
+    "occurredAt": "2026-08-01T12:00:00.033Z",
+    "recordedAt": "2026-08-01T12:00:00.037Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:reference-runtime#ed25519-1",
+    "signature": "0k9equFYJuacQ7NLbyh837raYrWbXiPGdXEsA1ICeXdETT0Y2Kmi6jqKxYRei1Dj3A3o8ThtDYLw56kU/gZxBA=="
+  },
+  {
+    "eventId": "3c8e5b74-9f8a-4b5c-d624-5fc8bad2be37",
+    "eventType": "execution_completed",
+    "correlationId": "5f2b0c7a-1d3e-4a89-9c11-8e6b2a4d7f30",
+    "agentId": "agent:reference-01",
+    "payload": {
+      "type": "execution_completed",
+      "executionId": "exec-7741",
+      "durationMs": 161,
+      "outcome": "success"
+    },
+    "previousHash": "c119a97a50f5a79ea10ae81ec13a5fbc5676c287d56c586eed1cde93f53bb1ac",
+    "eventHash": "f224960cda1f651a1ea6e06c1448f2375f41f8c0083f86b9eec541f59a414888",
+    "eventHash3": "aadbd5722b3d43a42bb664d602b4baeb00d91e8327594376b7f41ae3283b44bf",
+    "occurredAt": "2026-08-01T12:00:00.198Z",
+    "recordedAt": "2026-08-01T12:00:00.203Z",
+    "shadowMode": "production",
+    "signedBy": "did:vorion:reference-runtime#ed25519-1",
+    "signature": "Aw7xLtpNpZSdcyLBaATLfrBKwz4IIMPRxb6uyJ0wHNVKK0JMnxGUAwbWCSJyedfqoTgtfjVjaH00WnlxjkKqBw=="
+  }
+]

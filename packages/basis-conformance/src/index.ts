@@ -41,3 +41,26 @@ export {
   type ManifestError,
   type ManifestValidationResult,
 } from './manifest-validator.js';
+
+/**
+ * Public reference verifier for RFC-0002 §"Verification procedure".
+ *
+ * Where `validateManifest` is truth-only and structural, this actually
+ * recomputes the canonical-JSON bytes, re-derives `eventHash` (sha256) and
+ * `eventHash3` (sha3-256), walks `previousHash` linkage, and verifies
+ * detached Ed25519 signatures. It answers "is this record intact and did
+ * the claimed signer produce it" — and nothing beyond that. A chain that
+ * verifies is a chain that has not been altered; it is not a statement
+ * that the agent behaved well.
+ */
+export {
+  verifyChain,
+  canonicalize,
+  canonicalEventString,
+  canonicalEventBytes,
+  toEd25519PublicKey,
+  type ChainVerificationReport,
+  type EventVerification,
+  type VerifyChainOptions,
+  type SignatureDomain,
+} from './chain-verifier.js';

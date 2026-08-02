@@ -1,7 +1,7 @@
 {
   "name": "@vorionsys/basis-spec-conformance",
-  "version": "0.1.1",
-  "description": "BASIS conformance test suite — runs against @vorionsys/basis-spec to verify the spec is internally coherent. Vendor-endpoint mode coming in v0.2.",
+  "version": "0.2.0",
+  "description": "BASIS conformance test suite and public reference verifier for RFC-0002 proof event chains — recomputes canonical-JSON hashes, walks previousHash linkage, and checks detached Ed25519 signatures. Ships golden vectors so anyone can verify a chain without vendor tooling.",
   "keywords": [
     "ai",
     "agent",
@@ -9,7 +9,11 @@
     "trust",
     "conformance",
     "test-suite",
-    "basis"
+    "basis",
+    "audit-trail",
+    "hash-chain",
+    "ed25519",
+    "tamper-evident"
   ],
   "homepage": "https://vorion.org",
   "repository": {
@@ -40,6 +44,7 @@
   "files": [
     "dist",
     "src",
+    "vectors",
     "vitest.config.ts",
     "README.md",
     "LICENSE"
@@ -47,6 +52,7 @@
   "scripts": {
     "build": "tsc && node scripts/prepare-dist.mjs",
     "typecheck": "tsc --noEmit",
+    "vectors": "node scripts/generate-vectors.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "conformance": "vitest run --reporter=default --reporter=json --outputFile=conformance-results.json",

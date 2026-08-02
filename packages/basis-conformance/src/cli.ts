@@ -27,6 +27,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { runConformance } from './runner.js';
 import { validateManifest } from './manifest-validator.js';
+import { verifyChain, type VerifyChainOptions } from './chain-verifier.js';
 import { SUITE_VERSION } from './suite-meta.js';
 
 const HELP = `basis-conformance — BASIS conformance test suite
@@ -34,6 +35,7 @@ const HELP = `basis-conformance — BASIS conformance test suite
 Usage:
   basis-conformance run [options]            Run the suite, print results JSON to stdout
   basis-conformance validate <manifest.json> Structurally validate an external proof-chain manifest
+  basis-conformance verify <chain.json>      Cryptographically verify a proof chain (RFC-0002)
   basis-conformance --version                Print suite version
   basis-conformance --help                   This message
 
@@ -46,18 +48,62 @@ Options for 'run':
 Options for 'validate':
   --pretty          Pretty-print the JSON output (default: compact)
 
+Options for 'verify':
+  --keys PATH       JSON map of signedBy identity -> Ed25519 public key
+                    (PEM SPKI, 64-char hex, or base64 of the raw 32 bytes).
+                    A { "signer": ..., "publicKeyHex": ... } object is also
+                    accepted for single-signer chains.
+  --require-signatures  Treat a present-but-unverifiable signature as a
+                    failure instead of only reporting it.
+  --signature-domain canonical|eventHash
+                    Which message the detached signature covers.
+                    Default: canonical (RFC-0002 §"Verification procedure").
+  --pretty          Pretty-print the JSON output (default: compact)
+
 'validate' is TRUTH-ONLY: it reports structural facts (missing/malformed
 RFC-0002 fields) and does NOT emit any trust, compliance, or conformance
 verdict, nor verify signatures or recompute the hash chain.
 
+'verify' DOES do the cryptography: it recomputes each event's canonical
+bytes and sha256 (plus sha3-256 when present), walks previousHash linkage
+from a null head, and checks detached Ed25519 signatures. It reports on the
+INTEGRITY OF THE RECORD only — a chain that verifies has not been altered,
+which is not a claim that the agent behaved well.
+
 Exit codes:
   0  All tests passed (at least one test ran) / manifest structurally well-formed
-  1  One or more tests failed / manifest has structural errors
+     / chain verified
+  1  One or more tests failed / manifest has structural errors / chain did
+     not verify
   2  Runner error (could not invoke vitest, ZERO tests discovered,
-     could not read/parse the manifest, etc.)
+     could not read/parse the manifest or keys, etc.)
 
 FAIL-CLOSED: a run that discovers zero tests is never a pass — it exits 2.
+An empty chain is never a valid verification. A signature that is present
+but could not be checked is never silently counted as good.
 `;
+
+/**
+ * Accepts either a flat { identity: key } map or the single-signer
+ * { signer, publicKeyHex } shape the shipped vectors use.
+ */
+function parseKeyring(raw: unknown): Record<string, string> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error('keys file must be a JSON object');
+  }
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.signer === 'string' && typeof obj.publicKeyHex === 'string') {
+    return { [obj.signer]: obj.publicKeyHex };
+  }
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'string') out[k] = v;
+  }
+  if (Object.keys(out).length === 0) {
+    throw new Error('keys file contained no identity -> key entries');
+  }
+  return out;
+}
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
@@ -93,6 +139,81 @@ async function main(): Promise<void> {
       (pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result)) + '\n',
     );
     process.exit(result.valid ? 0 : 1);
+  }
+
+  if (cmd === 'verify') {
+    const pretty = argv.includes('--pretty');
+    const positional = argv.slice(1).filter((a, i, all) => {
+      if (a.startsWith('--')) return false;
+      // Skip values consumed by --keys / --signature-domain.
+      const prev = all[i - 1];
+      return prev !== '--keys' && prev !== '--signature-domain';
+    });
+    const path = positional[0];
+    if (!path) {
+      process.stderr.write(`verify: missing <chain.json> path\n\n${HELP}`);
+      process.exit(2);
+    }
+
+    let chain: unknown;
+    try {
+      chain = JSON.parse(readFileSync(path, 'utf-8'));
+    } catch (err) {
+      process.stderr.write(
+        `verify: could not read/parse ${path}: ${(err as Error).message}\n`,
+      );
+      process.exit(2);
+    }
+
+    const opts: { -readonly [K in keyof VerifyChainOptions]: VerifyChainOptions[K] } = {};
+
+    const keysIdx = argv.indexOf('--keys');
+    if (keysIdx >= 0) {
+      const keysPath = argv[keysIdx + 1];
+      if (!keysPath || keysPath.startsWith('--')) {
+        process.stderr.write('verify: --keys requires a PATH\n');
+        process.exit(2);
+      }
+      try {
+        opts.publicKeys = parseKeyring(JSON.parse(readFileSync(keysPath, 'utf-8')));
+      } catch (err) {
+        process.stderr.write(
+          `verify: could not read/parse keys ${keysPath}: ${(err as Error).message}\n`,
+        );
+        process.exit(2);
+      }
+    }
+
+    const domIdx = argv.indexOf('--signature-domain');
+    if (domIdx >= 0) {
+      const dom = argv[domIdx + 1];
+      if (dom !== 'canonical' && dom !== 'eventHash') {
+        process.stderr.write(
+          "verify: --signature-domain must be 'canonical' or 'eventHash'\n",
+        );
+        process.exit(2);
+      }
+      opts.signatureDomain = dom;
+    }
+
+    if (argv.includes('--require-signatures')) opts.requireSignatures = true;
+
+    const report = verifyChain(chain, opts);
+    process.stdout.write(
+      (pretty ? JSON.stringify(report, null, 2) : JSON.stringify(report)) + '\n',
+    );
+
+    // Never let a present-but-unchecked signature pass by unremarked, even
+    // when the caller did not ask for strict mode.
+    if (report.signaturesUnverified > 0 && !opts.requireSignatures) {
+      process.stderr.write(
+        `note: ${report.signaturesUnverified} event(s) carry a signature that was NOT verified ` +
+          '(no public key supplied). Hash and linkage integrity were checked; signer provenance was not. ' +
+          'Pass --keys to check it, or --require-signatures to make this a failure.\n',
+      );
+    }
+
+    process.exit(report.valid ? 0 : 1);
   }
 
   if (cmd !== 'run') {
