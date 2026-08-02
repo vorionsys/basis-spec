@@ -2,6 +2,20 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Repo-level — 2026-08-02
+
+### Added
+- **RFC-0005: Quorum Authorization Events v1** — how a runtime records an action that required more than one party to authorize it. Adds three event types (`quorum_requested`, `validator_vote`, `quorum_resolved`) as a non-breaking minor addition under RFC-0002's back-compat rules.
+
+  Core design is a **two-record structure**, forced by a measured property of threshold signatures: the aggregate is *subset-anonymous* — every valid `m`-subset produces a different signature verifying under the same group key, so the aggregate proves *that* a quorum signed but never *which members*. The aggregate therefore carries authority, and separately-chained per-validator votes carry attribution. Emitting only the aggregate is non-conforming, because it destroys exactly the information needed to detect a suppressed dissent or adjust a validator's tier honestly.
+
+  FROST (RFC 9591, `FROST-ED25519-SHA512-v1`) is the required default specifically because its output is a standard Ed25519 signature — a conforming quorum chain verifies with the **existing** verifier, unchanged. Validated end to end: a 6-event chain mixing individually-signed validator votes with a FROST aggregate verified under `basis-conformance verify --require-signatures` (`valid: true`, `signaturesValid: 4`, exit 0) with no verifier modifications.
+
+  The RFC is explicit that this is **not** Byzantine consensus (validators exercising judgment are stochastic, not deterministic replicas, so pBFT's safety argument does not transfer), that evidence entries are recorded claims rather than verifiable facts, that validators must be scored on outcome rather than peer agreement (scoring for agreement produces herding and collapses the independence the design depends on), and that validator independence is an empirical assumption to be measured rather than asserted.
+
+### Fixed
+- **RFC-0003 example block referenced a package that does not exist** — `@vorionsys/basis-conformance` / `github.com/vorionsys/basis-conformance`. Corrected to `@vorionsys/basis-spec-conformance` and `github.com/vorionsys/basis-spec`. Same dead-pointer class as the RFC-0002 fix in 0.2.0.
+
 ## [@vorionsys/basis-spec-conformance@0.2.0] — 2026-08-02
 
 ### Added

@@ -53,12 +53,12 @@ A conformance attestation is a single JSON document. Full schema in `schemas/att
 
   // The conformance suite the impl was tested against.
   "conformanceSuite": {
-    "name": "@vorionsys/basis-conformance",
-    "version": "0.1.0",
+    "name": "@vorionsys/basis-spec-conformance",
+    "version": "0.2.0",
     // Git sha of the suite source — the exact code that produced these results.
     "revision": "1a2b3c4d5e6f...",
     // Optional: URL where the suite source lives.
-    "source": "https://github.com/vorionsys/basis-conformance"
+    "source": "https://github.com/vorionsys/basis-spec"
   },
 
   // Aggregate test results.
