@@ -1,0 +1,14 @@
+# Normalize text to LF in the repository.
+* text=auto eol=lf
+
+# Golden proof-chain test vectors are deterministic artifacts: the
+# generator writes LF, so pin them to LF in the working tree too. Without
+# this, a Windows checkout rewrites them to CRLF and the next
+# `npm run vectors` shows a whole-file diff that has nothing to do with
+# the vectors actually changing.
+#
+# (Line endings do not affect verification itself — hashes are recomputed
+# from re-canonicalized JSON values, never from the raw file bytes — but a
+# noisy diff hides real changes, which is the thing these vectors exist to
+# make visible.)
+packages/basis-conformance/vectors/*.json text eol=lf
