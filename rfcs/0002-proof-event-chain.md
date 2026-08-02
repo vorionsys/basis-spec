@@ -253,5 +253,5 @@ The reference verifier defaults to `canonical`, accepts `signatureDomain: 'event
 ## Open questions
 
 - **Multi-chain merge semantics.** When an agent moves between tenants or a correlation spans federated runtimes, how do separate chains merge? Out of v1; track for v2.
-- **Chain pruning / archival.** Long-running runtimes will accumulate millions of events. Compaction strategies (Merkle root commitments + cold-storage tail) need a follow-up RFC.
+- ~~**Chain pruning / archival.**~~ **Addressed by [RFC-0007](0007-compaction-selective-disclosure.md)** (Chain Compaction and Selective Disclosure). Note the constraint that RFC discovered: compaction cannot *rewrite* the chain, because `previousHash` is inside the hash input, so re-linking invalidates every following event. Compaction is therefore strictly append-only, and it trades full-chain verification for root-attested membership — a cost RFC-0007 states explicitly rather than engineering around.
 - **Cross-runtime federation.** If two BASIS runtimes share a tenant, how do they coordinate `previousHash` to avoid forks? Today, "the chain" is per-runtime; a federation RFC would address this.
