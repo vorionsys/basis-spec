@@ -20,14 +20,16 @@
 #   basis-merkle      -> @vorionsys/basis-merkle        (NEW, never published)
 #
 # FIRST PUBLISH OF A NEW PACKAGE — npm has no "pending publisher" concept.
-# The binding above is configured at
-#   npmjs.com -> Packages -> YOUR_PACKAGE -> Settings -> Trusted publishing
-# which needs a package page, and a never-published package has none. npm's own
-# docs are silent on this rather than stating it; the evidence is the config
-# path itself, plus the existence of tools whose whole job is publishing a
-# placeholder so OIDC can then be configured. PyPI supports pending publishers;
-# npm is repeatedly contrasted against it here. Worth re-checking in the npm UI
-# before a release, in case it has shipped since.
+# CONFIRMED, first-party: `npm help trust` -> Prerequisites states
+#   "The package you're configuring must already exist on the npm registry."
+# So a never-published package cannot have a binding configured, by either the
+# website or the CLI. (PyPI supports pending publishers; npm does not.)
+#
+# The binding can be set from the CLI once the package exists — no UI needed:
+#   npm trust github @vorionsys/<pkg> --repo vorionsys/basis-spec --file release.yml
+#   npm trust list @vorionsys/<pkg>            # verify
+#   npm trust revoke @vorionsys/<pkg> --id=... # if ever needed
+# Requires npm >= 11.x (`npm trust` did not exist earlier).
 #
 # The bootstrap does NOT cost provenance. Provenance needs a supported CI with
 # `id-token: write` — that is what signs the Sigstore attestation — and is
