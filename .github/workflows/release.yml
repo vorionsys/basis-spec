@@ -88,6 +88,15 @@ on:
           - basis-quorum
           - basis-plan
           - basis-merkle
+      bootstrap:
+        description: >-
+          FIRST PUBLISH ONLY. Authenticate with the NPM_TOKEN secret instead of
+          OIDC, because a package that has never been published cannot have a
+          trusted-publisher binding. Provenance is still generated. Revoke the
+          token and set a binding immediately afterwards.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -127,7 +136,33 @@ jobs:
           cd "$PACKAGE_DIR"
           npm pack --dry-run
 
+      # DEFAULT PATH. Tag pushes always land here, because `inputs` is empty for
+      # a push event and the bootstrap flag can only be set by an explicit
+      # workflow_dispatch. No token is involved, and none is stored.
       - name: Publish (tokenless OIDC, provenance)
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.bootstrap) }}
         run: |
           cd "$PACKAGE_DIR"
           npm publish --provenance --access public
+
+      # OPT-IN PATH, first publish of a never-published package only. npm has no
+      # pending-publisher concept, so there is nothing to bind against until the
+      # package exists. `--provenance` is retained: attestation needs CI with
+      # `id-token: write`, not a particular auth method.
+      - name: Publish (BOOTSTRAP — token auth, provenance retained)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "::error::bootstrap=true but the NPM_TOKEN secret is not set. Add it with 'gh secret set NPM_TOKEN -R vorionsys/basis-spec', or re-run with bootstrap=false to publish tokenlessly."
+            exit 1
+          fi
+          cd "$PACKAGE_DIR"
+          npm publish --provenance --access public
+
+      - name: Bootstrap follow-up (reminder)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap }}
+        run: |
+          PKG=$(node -p "require('./${PACKAGE_DIR}/package.json').name")
+          echo "::warning::Bootstrap publish of ${PKG} complete. Two steps remain, and leaving the token live is the risk: (1) npm trust github ${PKG} --repo ${{ github.repository }} --file release.yml  (2) revoke the NPM_TOKEN secret and delete the token on npmjs.com. Verify with: npm trust list ${PKG}"
