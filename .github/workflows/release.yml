@@ -39,8 +39,26 @@
 #
 #   1. first publish from Actions with a short-lived granular NPM_TOKEN,
 #      keeping --provenance
-#   2. configure trusted publishing on the now-existing package
+#   2. configure trusted publishing on the now-existing package:
+#        npm trust github @vorionsys/<pkg> --repo vorionsys/basis-spec --file release.yml
 #   3. revoke the token; subsequent releases go tokenless via OIDC
+#
+# ⏳ THIS WINDOW CLOSES ~JANUARY 2027. Every publish path npm offers requires
+# the package to already exist, except direct token publish:
+#
+#   trusted publishing  -> "The package you're configuring must already exist"
+#   staged publishing   -> "you cannot stage a brand-new package"
+#   direct GAT publish  -> the only way to CREATE a new package name
+#
+# and per github.blog/changelog/2026-07-31-restricting-npm-bypass-2fa-granular-
+# access-tokens, 2FA-bypass GATs keep direct publish today but lose it around
+# January 2027, dropping to staging-plus-human-2FA-approval.
+#
+# After that, creating a new package name means an INTERACTIVE publish by a
+# human with an OTP — which cannot carry provenance, because provenance
+# requires CI OIDC. So a package first published after that date starts life
+# with an unattested v1. Bootstrapping these three NOW is the only way their
+# first version ships attested.
 #
 # Never drop `provenance: true` to get a publish through. It is the attestation
 # these packages' entire "verify it yourself" claim rests on, and it was never
