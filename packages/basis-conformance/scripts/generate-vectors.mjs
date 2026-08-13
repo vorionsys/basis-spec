@@ -215,6 +215,21 @@ for (const ev of domainMismatch) {
 const badHead = clone(validSigned);
 badHead[0].previousHash = 'a'.repeat(64);
 
+// Tamper 6: signatures STRIPPED. Every `signature` is deleted while
+// `signedBy` is left in place, so each event still asserts it was signed by
+// an identity it can no longer prove. Hashes and linkage stay perfect.
+//
+// This is the cheapest attack on a receipt chain — it requires no key, no
+// forgery and no hash work, only a delete. A verifier that treats "no
+// signature" as "unsigned, that's fine" reports a stripped chain as VALID
+// and the whole tamper-evidence claim collapses. Distinguishing this from
+// chain-valid-unsigned.json (which carries NEITHER signedBy NOR signature,
+// and is a legitimately unsigned chain) is the entire point of the vector.
+const strippedSignature = clone(validSigned);
+for (const ev of strippedSignature) {
+  delete ev.signature;
+}
+
 mkdirSync(VECTORS_DIR, { recursive: true });
 
 const write = (name, data) =>
@@ -227,6 +242,7 @@ write('chain-broken-linkage.json', brokenLinkage);
 write('chain-bad-signature.json', badSignature);
 write('chain-signature-domain-mismatch.json', domainMismatch);
 write('chain-bad-head.json', badHead);
+write('chain-stripped-signature.json', strippedSignature);
 write('keys.json', {
   note: 'Ed25519 public key for the reference test vectors. Derived from a FIXED seed — these vectors are deterministic and this key protects nothing real.',
   signer: SIGNER,
@@ -236,7 +252,7 @@ write('keys.json', {
 });
 
 process.stdout.write(
-  `wrote 8 vector files to ${VECTORS_DIR}\n` +
+  `wrote 9 vector files to ${VECTORS_DIR}\n` +
     `  signer:    ${SIGNER}\n` +
     `  publicKey: ${publicRawHex}\n` +
     `  head hash: ${validSigned[0].eventHash}\n`,

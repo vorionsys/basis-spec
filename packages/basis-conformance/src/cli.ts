@@ -53,8 +53,11 @@ Options for 'verify':
                     (PEM SPKI, 64-char hex, or base64 of the raw 32 bytes).
                     A { "signer": ..., "publicKeyHex": ... } object is also
                     accepted for single-signer chains.
-  --require-signatures  Treat a present-but-unverifiable signature as a
-                    failure instead of only reporting it.
+  --require-signatures  Require that EVERY event carry a signature that
+                    verified. Unverifiable, stripped and absent signatures
+                    all fail. (Before 0.3.0 this covered only the
+                    unverifiable case, so a chain with no signatures at
+                    all passed it.)
   --signature-domain canonical|eventHash
                     Which message the detached signature covers.
                     Default: canonical (RFC-0002 §"Verification procedure").
@@ -69,6 +72,12 @@ bytes and sha256 (plus sha3-256 when present), walks previousHash linkage
 from a null head, and checks detached Ed25519 signatures. It reports on the
 INTEGRITY OF THE RECORD only — a chain that verifies has not been altered,
 which is not a claim that the agent behaved well.
+
+An event that names a signer in signedBy but carries no signature is
+reported as STRIPPED and always fails, with or without
+--require-signatures: deleting a field must not downgrade a signed chain
+into an "unsigned" one. A chain carrying neither field is a legitimately
+unsigned chain and still verifies on hashes and linkage alone.
 
 Exit codes:
   0  All tests passed (at least one test ran) / manifest structurally well-formed
@@ -202,6 +211,18 @@ async function main(): Promise<void> {
     process.stdout.write(
       (pretty ? JSON.stringify(report, null, 2) : JSON.stringify(report)) + '\n',
     );
+
+    // A stripped signature is the finding, not a footnote — say so in plain
+    // words on stderr, because a caller scanning output for "valid":false
+    // still deserves to know WHY without parsing the per-event array.
+    if (report.signaturesStripped > 0) {
+      process.stderr.write(
+        `WARNING: ${report.signaturesStripped} event(s) name a signer in signedBy but carry no signature. ` +
+          'This is a stripped chain, not an unsigned one — the hashes still ' +
+          'agree, so the record is internally consistent and entirely ' +
+          'unattributable. Treat it as tampering.\n',
+      );
+    }
 
     // Never let a present-but-unchecked signature pass by unremarked, even
     // when the caller did not ask for strict mode.

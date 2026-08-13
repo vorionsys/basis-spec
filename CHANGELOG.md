@@ -2,6 +2,24 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [@vorionsys/basis-spec-conformance@0.3.0] — 2026-08-13
+
+**Security fix.** The reference verifier reported a chain whose signatures had been **deleted** as `valid: true`, exit `0` — including under `--require-signatures`. Anyone holding a signed chain could strip every `signature` field, leave `signedBy` in place, and the chain still verified: hashes and linkage are computed over the canonical event bytes, which do not include the signature, so removing it breaks nothing the verifier was checking. No key, no forgery and no hash work required — the cheapest possible attack on a receipt chain, against the one property the chain exists to provide.
+
+### Fixed
+- **Stripped signatures are detected and always fail** — with or without `--require-signatures`, because the attacker chooses whether the verifier runs in strict mode and we do not. An event whose `signedBy` names a signer while `signature` is absent now reports `signature: 'stripped'`, is counted in the new `signaturesStripped`, breaks the chain at that event, and prints an explicit stderr warning.
+- **`--require-signatures` now means what it says** — every event must carry a signature that *verified*. Unverifiable, stripped and absent all fail it. It previously covered only the present-but-unverifiable case, so a chain with no signatures at all passed the flag whose entire purpose is to demand them.
+- **`SUITE_VERSION` had silently drifted** — `suite-meta.ts` reported `0.1.1` while the published package was `0.2.0`, so every conformance results document cited a suite version that was never released. Verifiers are told to compare that field against known-good releases, which makes a stale value a confident *wrong* provenance claim rather than a missing one. Corrected, and `src/tests/suite-meta.test.ts` now asserts it against `package.json` so it cannot drift again.
+
+### Added
+- `vectors/chain-stripped-signature.json` — ninth golden vector. Hashes and linkage are perfect; only the proof of authorship is gone. Deliberately distinct from `chain-valid-unsigned.json`, which carries **neither** `signedBy` nor `signature` and remains legitimately valid: telling those two apart is the whole fix.
+- `signaturesStripped` on `ChainVerificationReport`, and `'stripped'` on the per-event `signature` union.
+- 9 tests (110 → 119), including a regression guard asserting a stripped chain fails with no keyring supplied — stripping is not a key-availability problem.
+
+### Compatibility
+- **Behavioural change to `--require-signatures`.** If you used it to check hash and linkage integrity on unsigned chains, drop the flag — that is the default and still exits `0`. Unsigned chains are unaffected without it.
+- `signature: 'stripped'` is a new member of an existing union; consumers exhaustively switching on that field will need a branch.
+
 ## [@vorionsys/basis-merkle@0.1.0] — 2026-08-02
 
 First release. Public reference implementation of RFC-0007 — chain compaction and Merkle selective disclosure. Pure SHA-256 + the Ed25519 signatures already in use; no trusted setup, no pairings, no new cryptographic assumptions.

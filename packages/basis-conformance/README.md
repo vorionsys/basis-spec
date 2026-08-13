@@ -100,7 +100,11 @@ console.log(`${results.passed}/${results.total} tests passed`);
 - A run that discovers zero tests never exits `0`. It prints an error to stderr and exits `2`, because "no tests ran" is indistinguishable from "the suite is missing" and must never be reported as conformance.
 - An **empty chain is never a valid verification**. Same reasoning: nothing to verify is not the same as verified.
 - A signature that is **present but could not be checked** — no key supplied, unusable key, malformed signature — is never silently counted as good. It is reported in `signaturesUnverified`, the CLI prints an explicit stderr note even when you did not ask for strict mode, and `--require-signatures` turns it into a failure.
+- A **stripped signature always fails**, with or without `--require-signatures`. An event that names a signer in `signedBy` but carries no `signature` is reported as `'stripped'` and counted in `signaturesStripped`. This is deliberately *not* the same state as a legitimately unsigned event, which carries neither field and still verifies on hashes and linkage alone. Collapsing the two would let anyone downgrade a signed chain to an "unsigned" one by deleting a field — no key, no forgery, no hash work — and the hashes would still agree, because the signature is not part of the hash input. See `vectors/chain-stripped-signature.json`.
+- `--require-signatures` means **every event must carry a signature that verified**. Unverifiable, stripped and absent all fail it.
 - A **malformed public key is a hard error**, not a skipped check.
+
+> **Changed in 0.3.0.** `--require-signatures` previously covered only the *present-but-unverifiable* case, so it accepted a chain carrying no signatures at all — the opposite of what the name promises. If you relied on the old behaviour to check hash and linkage integrity on unsigned chains, drop the flag: that is the default and still exits `0`.
 
 ### Suite revision
 

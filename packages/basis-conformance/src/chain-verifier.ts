@@ -27,6 +27,10 @@
  *     unsupported key, malformed signature) never silently counts as good.
  *     It is reported in `signaturesUnverified`, and under
  *     `requireSignatures: true` it makes the whole chain invalid.
+ *   - A STRIPPED signature — `signedBy` present, `signature` gone — is always
+ *     a hard failure, with or without `requireSignatures`. It is the cheapest
+ *     possible attack on a receipt chain (no key, no forgery, no hash work,
+ *     just a delete) and must never read as "unsigned, that's fine".
  *   - `valid: true` means every check that ran passed AND no present-but-
  *     unverifiable signature was ignored under strict mode. It is an
  *     integrity verdict about the record — never a trust or compliance
@@ -191,9 +195,22 @@ export interface EventVerification {
    *   'invalid'       — key supplied, signature did not verify
    *   'domain-mismatch' — verified only under the OTHER signature domain
    *   'unverified'    — signature present but no usable key was supplied
-   *   'absent'        — no signature on this event
+   *   'stripped'      — `signedBy` claims a signer but `signature` is gone
+   *   'absent'        — neither `signedBy` nor `signature`: legitimately
+   *                     unsigned, integrity resting on the hash chain alone
+   *
+   * The 'stripped' / 'absent' split is load-bearing. Collapsing them lets an
+   * attacker downgrade a signed chain to an "unsigned" one by deleting a
+   * field, and a verifier that cannot tell the difference will call the
+   * result valid.
    */
-  readonly signature: 'valid' | 'invalid' | 'domain-mismatch' | 'unverified' | 'absent';
+  readonly signature:
+    | 'valid'
+    | 'invalid'
+    | 'domain-mismatch'
+    | 'unverified'
+    | 'stripped'
+    | 'absent';
   /** Human-readable detail for whichever check failed. */
   readonly problem?: string;
 }
@@ -215,6 +232,11 @@ export interface ChainVerificationReport {
   readonly signaturesInvalid: number;
   /** Present-but-uncheckable signatures. Non-zero is never silently OK. */
   readonly signaturesUnverified: number;
+  /**
+   * Events whose `signedBy` survived but whose `signature` did not. Any
+   * non-zero value here already forced `valid: false`.
+   */
+  readonly signaturesStripped: number;
   readonly hash3Checked: number;
   readonly events: ReadonlyArray<EventVerification>;
 }
@@ -226,8 +248,15 @@ export interface VerifyChainOptions {
    */
   readonly publicKeys?: Readonly<Record<string, string | KeyObject>>;
   /**
-   * When true, any present-but-unverifiable signature invalidates the
-   * chain. Default false — but the count is always surfaced either way.
+   * When true, every event must carry a signature that actually VERIFIED.
+   * Unverifiable, stripped and absent signatures all invalidate the chain.
+   *
+   * Default false — but note that a stripped signature fails regardless of
+   * this setting, and the counts are always surfaced either way.
+   *
+   * Changed in 0.3.0: this previously covered only present-but-unverifiable
+   * signatures, so `requireSignatures` accepted a chain carrying no
+   * signatures at all — which is the opposite of what the name promises.
    */
   readonly requireSignatures?: boolean;
   /** Which message the detached signature covers. Default 'canonical'. */
@@ -261,6 +290,7 @@ function fail(error: string): ChainVerificationReport {
     signaturesValid: 0,
     signaturesInvalid: 0,
     signaturesUnverified: 0,
+    signaturesStripped: 0,
     hash3Checked: 0,
     events: [],
   };
@@ -311,6 +341,7 @@ export function verifyChain(
   let signaturesValid = 0;
   let signaturesInvalid = 0;
   let signaturesUnverified = 0;
+  let signaturesStripped = 0;
   let hash3Checked = 0;
   let brokenAt: string | undefined;
   let verifiedEvents = 0;
@@ -404,8 +435,25 @@ export function verifyChain(
 
     // --- Signature ---------------------------------------------------------
     let signature: EventVerification['signature'] = 'absent';
-    if (typeof ev.signature === 'string' && ev.signature.length > 0) {
-      const signer = typeof ev.signedBy === 'string' ? ev.signedBy : '';
+    // Narrow to concrete strings rather than booleans, so the type checker
+    // carries the narrowing into the branches below instead of us casting.
+    const rawSignature = typeof ev.signature === 'string' && ev.signature.length > 0 ? ev.signature : null;
+    const claimedSigner = typeof ev.signedBy === 'string' && ev.signedBy.length > 0 ? ev.signedBy : null;
+
+    if (rawSignature === null && claimedSigner !== null) {
+      // The event asserts it was signed by an identity and then offers
+      // nothing to check that against. No legitimate producer emits this:
+      // the vector generator writes signedBy and signature together or
+      // neither. Treat it as tampering, not as an unsigned chain — and do
+      // so unconditionally, because an attacker chooses whether the
+      // verifier runs with --require-signatures and we do not.
+      signature = 'stripped';
+      signaturesStripped++;
+      if (!problem) {
+        problem = `event declares signedBy "${claimedSigner}" but carries no signature — signature stripped`;
+      }
+    } else if (rawSignature !== null) {
+      const signer = claimedSigner ?? '';
       const key = signer ? keys.get(signer) : undefined;
       if (!key) {
         signature = 'unverified';
@@ -417,7 +465,7 @@ export function verifyChain(
         }
       } else {
         try {
-          const sig = decodeSignature(ev.signature);
+          const sig = decodeSignature(rawSignature);
           const ok = cryptoVerify(
             null,
             signatureMessage(domain, canonicalBytes, ev.eventHash),
@@ -470,7 +518,8 @@ export function verifyChain(
       linkageValid &&
       hash3Valid !== false &&
       signature !== 'invalid' &&
-      signature !== 'domain-mismatch';
+      signature !== 'domain-mismatch' &&
+      signature !== 'stripped';
 
     if (!eventOk) {
       brokenAt = eventId;
@@ -481,7 +530,12 @@ export function verifyChain(
     previousEventHash = ev.eventHash;
   }
 
-  const strictFailure = (opts.requireSignatures ?? false) && signaturesUnverified > 0;
+  // Under requireSignatures every event must have reached 'valid'. Counting
+  // shortfall rather than testing `signaturesUnverified > 0` is what makes
+  // an all-absent chain fail too: 0 unverified but 0 valid is still 0 proof.
+  const strict = opts.requireSignatures ?? false;
+  const signatureShortfall = chain.length - signaturesValid;
+  const strictFailure = strict && signatureShortfall > 0;
 
   const firstEventId =
     typeof (chain[0] as RawEvent)?.eventId === 'string'
@@ -502,12 +556,15 @@ export function verifyChain(
     ...(brokenAt !== undefined ? { brokenAt } : {}),
     ...(strictFailure
       ? {
-          error: `${signaturesUnverified} event(s) carry a signature that could not be verified and requireSignatures is set`,
+          error:
+            `requireSignatures is set but only ${signaturesValid} of ${chain.length} event(s) carry a verified signature ` +
+            `(${signaturesUnverified} unverifiable, ${signaturesStripped} stripped, ${signaturesInvalid} invalid)`,
         }
       : {}),
     signaturesValid,
     signaturesInvalid,
     signaturesUnverified,
+    signaturesStripped,
     hash3Checked,
     events,
   };

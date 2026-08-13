@@ -120,6 +120,52 @@ describe('chain-verify: tamper detection', () => {
   });
 });
 
+describe('chain-verify: signature stripping', () => {
+  // Regression guard. Before 0.3.0 the verifier only inspected `signature`
+  // when it was present, so deleting the field left the event in the same
+  // 'absent' state as a legitimately unsigned one — and a stripped chain
+  // verified clean, including under --require-signatures. Removing a field
+  // is the cheapest attack there is; it has to be the loudest failure.
+  it('rejects a chain whose signatures were deleted but signedBy left behind', () => {
+    const chain = vector('chain-stripped-signature') as Array<{ eventId: string }>;
+    const r = verifyChain(chain, { publicKeys: KEYRING });
+    expect(r.valid).toBe(false);
+    expect(r.brokenAt).toBe(chain[0].eventId);
+    expect(r.events[0].signature).toBe('stripped');
+    expect(r.signaturesStripped).toBe(1);
+    expect(r.events[0].problem).toMatch(/signature stripped/);
+  });
+
+  it('rejects it with no keyring supplied either — stripping is not a key problem', () => {
+    const r = verifyChain(vector('chain-stripped-signature'));
+    expect(r.valid).toBe(false);
+    expect(r.events[0].signature).toBe('stripped');
+  });
+
+  it('still rejects it under requireSignatures', () => {
+    const r = verifyChain(vector('chain-stripped-signature'), {
+      publicKeys: KEYRING,
+      requireSignatures: true,
+    });
+    expect(r.valid).toBe(false);
+  });
+
+  it('hashes and linkage are untouched — only the proof of authorship is gone', () => {
+    const r = verifyChain(vector('chain-stripped-signature'), { publicKeys: KEYRING });
+    expect(r.events[0].hashValid).toBe(true);
+    expect(r.events[0].linkageValid).toBe(true);
+    // Which is exactly why the hash chain alone cannot carry this claim: a
+    // stripped chain is internally consistent and still unattributable.
+  });
+
+  it('does not confuse a legitimately unsigned chain with a stripped one', () => {
+    const r = verifyChain(vector('chain-valid-unsigned'), { publicKeys: KEYRING });
+    expect(r.valid).toBe(true);
+    expect(r.signaturesStripped).toBe(0);
+    expect(r.events.every((e) => e.signature === 'absent')).toBe(true);
+  });
+});
+
 describe('chain-verify: signature domain (RFC-0002 erratum)', () => {
   it('flags a signature made over eventHash instead of the canonical bytes', () => {
     const r = verifyChain(vector('chain-signature-domain-mismatch'), {
@@ -163,7 +209,16 @@ describe('chain-verify: fail-closed posture', () => {
   it('requireSignatures turns an unverifiable signature into an invalid chain', () => {
     const r = verifyChain(vector('chain-valid-signed'), { requireSignatures: true });
     expect(r.valid).toBe(false);
-    expect(r.error).toMatch(/could not be verified/);
+    expect(r.error).toMatch(/verified signature/);
+  });
+
+  it('requireSignatures rejects an unsigned chain instead of vacuously passing it', () => {
+    // The flag says "require signatures". A chain with none must fail it,
+    // even though that same chain is legitimately valid without the flag.
+    const r = verifyChain(vector('chain-valid-unsigned'), { requireSignatures: true });
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/only 0 of 4/);
+    expect(verifyChain(vector('chain-valid-unsigned')).valid).toBe(true);
   });
 
   it('a malformed public key is a hard error, not a skipped check', () => {

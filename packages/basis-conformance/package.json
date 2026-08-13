@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/basis-spec-conformance",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "BASIS conformance test suite and public reference verifier for RFC-0002 proof event chains — recomputes canonical-JSON hashes, walks previousHash linkage, and checks detached Ed25519 signatures. Ships golden vectors so anyone can verify a chain without vendor tooling.",
   "keywords": [
     "ai",

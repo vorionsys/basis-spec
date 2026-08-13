@@ -20,7 +20,14 @@
 import { readFileSync } from 'node:fs';
 
 export const SUITE_NAME = '@vorionsys/basis-spec-conformance' as const;
-export const SUITE_VERSION = '0.1.1' as const;
+/**
+ * Keep in lockstep with package.json's `version`. This is hand-maintained
+ * because it must be a compile-time constant, so `suite-meta.test.ts`
+ * asserts the two agree — they had silently diverged (0.1.1 here vs 0.2.0
+ * published) until that guard existed, which meant every conformance
+ * result document cited a suite version that was never released.
+ */
+export const SUITE_VERSION = '0.3.0' as const;
 
 function readStampedRevision(): string | undefined {
   try {
