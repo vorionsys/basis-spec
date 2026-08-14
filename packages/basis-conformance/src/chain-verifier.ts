@@ -179,6 +179,46 @@ function signatureMessage(
 // Result types
 // ---------------------------------------------------------------------------
 
+/**
+ * Stable, machine-readable reject reasons.
+ *
+ * `problem` is prose and will be reworded; nothing should ever be compared
+ * against it. These codes are the compared contract: a second implementation
+ * can assert that it rejects a vector *for the same reason*, rather than only
+ * that it rejected. A bare boolean makes "reject" untestable — two verifiers
+ * can agree a chain is bad while disagreeing completely about what is wrong
+ * with it, and that agreement is worth nothing.
+ *
+ * These strings are API. Renaming one is a breaking change.
+ *
+ * NOTE: a code is not by itself a rejection. `HASH3_UNSUPPORTED` records that
+ * a check could not run in this Node build; the event still passes. Whether a
+ * chain was rejected is `valid`, never the presence of a code.
+ */
+export type FailureCode =
+  // Chain-level — the whole input was refused before or after per-event work.
+  | 'CHAIN_NOT_ARRAY'
+  | 'CHAIN_EMPTY'
+  | 'PUBLIC_KEY_UNUSABLE'
+  | 'SIGNATURES_REQUIRED_SHORTFALL'
+  // Structure
+  | 'EVENT_MALFORMED'
+  | 'PAYLOAD_NOT_CANONICALIZABLE'
+  // Linkage
+  | 'CHAIN_HEAD_NOT_NULL'
+  | 'LINKAGE_MISMATCH'
+  // Hashes
+  | 'EVENT_HASH_MISMATCH'
+  | 'EVENT_HASH3_MISMATCH'
+  | 'HASH3_UNSUPPORTED'
+  // Signatures — the split here is the point of the whole suite.
+  | 'SIGNATURE_STRIPPED'
+  | 'SIGNATURE_UNVERIFIED_NO_KEY'
+  | 'SIGNATURE_NO_SIGNER_IDENTITY'
+  | 'SIGNATURE_DOMAIN_MISMATCH'
+  | 'SIGNATURE_INVALID'
+  | 'SIGNATURE_UNUSABLE';
+
 /** Per-event outcome. `null` fields mean "check did not run". */
 export interface EventVerification {
   readonly index: number;
@@ -211,8 +251,10 @@ export interface EventVerification {
     | 'unverified'
     | 'stripped'
     | 'absent';
-  /** Human-readable detail for whichever check failed. */
+  /** Human-readable detail for whichever check failed. Prose — never compare on it. */
   readonly problem?: string;
+  /** Machine-readable counterpart to `problem`. Compare on this. */
+  readonly failureCode?: FailureCode;
 }
 
 /**
@@ -227,6 +269,13 @@ export interface ChainVerificationReport {
   readonly lastEventId: string;
   readonly brokenAt?: string;
   readonly error?: string;
+  /**
+   * Why this chain was rejected, machine-readable. Present whenever
+   * `valid` is false; absent when it is true. For a chain broken at an event
+   * this is that event's code, so `{brokenAt, failureCode}` together say
+   * where and why without parsing prose.
+   */
+  readonly failureCode?: FailureCode;
 
   readonly signaturesValid: number;
   readonly signaturesInvalid: number;
@@ -280,13 +329,14 @@ interface RawEvent {
   signature?: unknown;
 }
 
-function fail(error: string): ChainVerificationReport {
+function fail(error: string, failureCode: FailureCode): ChainVerificationReport {
   return {
     valid: false,
     verifiedEvents: 0,
     firstEventId: '',
     lastEventId: '',
     error,
+    failureCode,
     signaturesValid: 0,
     signaturesInvalid: 0,
     signaturesUnverified: 0,
@@ -316,11 +366,14 @@ export function verifyChain(
   opts: VerifyChainOptions = {},
 ): ChainVerificationReport {
   if (!Array.isArray(chain)) {
-    return fail('chain must be a JSON array of proof events');
+    return fail('chain must be a JSON array of proof events', 'CHAIN_NOT_ARRAY');
   }
   // Fail-closed: an empty chain is not a vacuous pass.
   if (chain.length === 0) {
-    return fail('chain is empty — refusing to report a valid verification (fail-closed)');
+    return fail(
+      'chain is empty — refusing to report a valid verification (fail-closed)',
+      'CHAIN_EMPTY',
+    );
   }
 
   const domain: SignatureDomain = opts.signatureDomain ?? 'canonical';
@@ -333,7 +386,10 @@ export function verifyChain(
     try {
       keys.set(id, toEd25519PublicKey(key));
     } catch (err) {
-      return fail(`public key for "${id}" is unusable: ${(err as Error).message}`);
+      return fail(
+        `public key for "${id}" is unusable: ${(err as Error).message}`,
+        'PUBLIC_KEY_UNUSABLE',
+      );
     }
   }
 
@@ -369,6 +425,7 @@ export function verifyChain(
         signature: 'absent',
         problem:
           'event is missing one of the hashable fields (eventType, occurredAt, payload, previousHash) or eventHash — run `validate` for a full structural report',
+        failureCode: 'EVENT_MALFORMED',
       });
       brokenAt = eventId;
       break;
@@ -378,12 +435,25 @@ export function verifyChain(
 
     // --- Linkage (RFC-0002 §"Chain linkage") -------------------------------
     const linkageValid = i === 0 ? prevHash === null : prevHash === previousEventHash;
+
+    // `problem` and `failureCode` are set together and first-wins, so the prose
+    // and the code can never describe different things.
     let problem: string | undefined;
+    let failureCode: FailureCode | undefined;
+    const note = (code: FailureCode, text: string): void => {
+      if (problem === undefined) {
+        problem = text;
+        failureCode = code;
+      }
+    };
+
     if (!linkageValid) {
-      problem =
+      note(
+        i === 0 ? 'CHAIN_HEAD_NOT_NULL' : 'LINKAGE_MISMATCH',
         i === 0
           ? `chain head must have previousHash null, got ${JSON.stringify(prevHash)}`
-          : `previousHash ${JSON.stringify(prevHash)} does not match prior event's eventHash ${JSON.stringify(previousEventHash)}`;
+          : `previousHash ${JSON.stringify(prevHash)} does not match prior event's eventHash ${JSON.stringify(previousEventHash)}`,
+      );
     }
 
     // --- Hash recomputation ------------------------------------------------
@@ -405,6 +475,7 @@ export function verifyChain(
         linkageValid,
         signature: 'absent',
         problem: `payload is not canonicalizable: ${(err as Error).message}`,
+        failureCode: 'PAYLOAD_NOT_CANONICALIZABLE',
       });
       brokenAt = eventId;
       break;
@@ -412,8 +483,8 @@ export function verifyChain(
 
     const recomputed = sha256Hex(canonicalBytes);
     const hashValid = recomputed === ev.eventHash;
-    if (!hashValid && !problem) {
-      problem = `eventHash mismatch — recomputed ${recomputed}, stored ${ev.eventHash}`;
+    if (!hashValid) {
+      note('EVENT_HASH_MISMATCH', `eventHash mismatch — recomputed ${recomputed}, stored ${ev.eventHash}`);
     }
 
     let hash3Valid: boolean | null = null;
@@ -421,14 +492,20 @@ export function verifyChain(
       const recomputed3 = sha3_256HexOrNull(canonicalBytes);
       if (recomputed3 === null) {
         hash3Valid = null;
-        if (!problem) {
-          problem = 'eventHash3 present but sha3-256 is unavailable in this Node build — check not run';
-        }
+        // Non-fatal: the check did not run. Coded so a consumer can tell this
+        // apart from a mismatch without reading the prose.
+        note(
+          'HASH3_UNSUPPORTED',
+          'eventHash3 present but sha3-256 is unavailable in this Node build — check not run',
+        );
       } else {
         hash3Valid = recomputed3 === ev.eventHash3;
         hash3Checked++;
-        if (!hash3Valid && !problem) {
-          problem = `eventHash3 mismatch — recomputed ${recomputed3}, stored ${ev.eventHash3}`;
+        if (!hash3Valid) {
+          note(
+            'EVENT_HASH3_MISMATCH',
+            `eventHash3 mismatch — recomputed ${recomputed3}, stored ${ev.eventHash3}`,
+          );
         }
       }
     }
@@ -449,19 +526,23 @@ export function verifyChain(
       // verifier runs with --require-signatures and we do not.
       signature = 'stripped';
       signaturesStripped++;
-      if (!problem) {
-        problem = `event declares signedBy "${claimedSigner}" but carries no signature — signature stripped`;
-      }
+      note(
+        'SIGNATURE_STRIPPED',
+        `event declares signedBy "${claimedSigner}" but carries no signature — signature stripped`,
+      );
     } else if (rawSignature !== null) {
       const signer = claimedSigner ?? '';
       const key = signer ? keys.get(signer) : undefined;
       if (!key) {
         signature = 'unverified';
         signaturesUnverified++;
-        if (!problem) {
-          problem = signer
-            ? `signature present but no public key supplied for signedBy "${signer}"`
-            : 'signature present but event has no signedBy identity to resolve a key';
+        if (signer) {
+          note('SIGNATURE_UNVERIFIED_NO_KEY', `signature present but no public key supplied for signedBy "${signer}"`);
+        } else {
+          note(
+            'SIGNATURE_NO_SIGNER_IDENTITY',
+            'signature present but event has no signedBy identity to resolve a key',
+          );
         }
       } else {
         try {
@@ -486,19 +567,20 @@ export function verifyChain(
             if (okOther) {
               signature = 'domain-mismatch';
               signaturesInvalid++;
-              if (!problem) {
-                problem = `signature verifies over '${otherDomain}' but this verifier is checking '${domain}' — signer and verifier disagree on the signed message (RFC-0002 erratum)`;
-              }
+              note(
+                'SIGNATURE_DOMAIN_MISMATCH',
+                `signature verifies over '${otherDomain}' but this verifier is checking '${domain}' — signer and verifier disagree on the signed message (RFC-0002 erratum)`,
+              );
             } else {
               signature = 'invalid';
               signaturesInvalid++;
-              if (!problem) problem = 'Ed25519 signature did not verify';
+              note('SIGNATURE_INVALID', 'Ed25519 signature did not verify');
             }
           }
         } catch (err) {
           signature = 'invalid';
           signaturesInvalid++;
-          if (!problem) problem = `signature unusable: ${(err as Error).message}`;
+          note('SIGNATURE_UNUSABLE', `signature unusable: ${(err as Error).message}`);
         }
       }
     }
@@ -511,6 +593,7 @@ export function verifyChain(
       linkageValid,
       signature,
       ...(problem ? { problem } : {}),
+      ...(failureCode ? { failureCode } : {}),
     });
 
     const eventOk =
@@ -548,6 +631,16 @@ export function verifyChain(
 
   const valid = brokenAt === undefined && verifiedEvents === chain.length && !strictFailure;
 
+  // The chain's reject reason. A break at an event carries that event's code up,
+  // so {brokenAt, failureCode} answers where and why together. A strict-mode
+  // shortfall is a chain-level refusal and has its own code — it is not any one
+  // event's fault, and reporting it as one would point the reader at the wrong
+  // place. Never set when valid.
+  const brokenEvent = brokenAt !== undefined ? events.find((e) => e.eventId === brokenAt) : undefined;
+  const reportCode: FailureCode | undefined = valid
+    ? undefined
+    : brokenEvent?.failureCode ?? (strictFailure ? 'SIGNATURES_REQUIRED_SHORTFALL' : undefined);
+
   return {
     valid,
     verifiedEvents,
@@ -561,6 +654,7 @@ export function verifyChain(
             `(${signaturesUnverified} unverifiable, ${signaturesStripped} stripped, ${signaturesInvalid} invalid)`,
         }
       : {}),
+    ...(reportCode ? { failureCode: reportCode } : {}),
     signaturesValid,
     signaturesInvalid,
     signaturesUnverified,

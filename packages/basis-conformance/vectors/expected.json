@@ -1,0 +1,91 @@
+{
+  "$comment": [
+    "The two-sided contract for these vectors.",
+    "",
+    "Without this file the MUST-FAIL cases are only half a contract: a second",
+    "implementation can see THAT we reject a vector but has to read our",
+    "TypeScript to learn WHY. Two verifiers agreeing a chain is bad while",
+    "disagreeing about what is wrong with it is not interoperability.",
+    "",
+    "So each vector declares its own expected outcome here, in data, next to",
+    "the vector itself. An independent implementation asserts against this file",
+    "and never needs to open our source.",
+    "",
+    "`failureCode` values are the FailureCode union in src/chain-verifier.ts and",
+    "are API — renaming one is a breaking change. `problem` prose is deliberately",
+    "NOT declared: it is reworded freely and must never be compared on.",
+    "",
+    "`exitCode` is the CLI contract: 0 verified, 1 failed, 2 could not run."
+  ],
+  "suite": "basis-spec chain conformance",
+  "keys": "keys.json",
+  "vectors": [
+    {
+      "file": "chain-valid-signed.json",
+      "intent": "MUST-PASS: a well-formed, fully signed chain.",
+      "default": { "valid": true, "exitCode": 0 },
+      "requireSignatures": { "valid": true, "exitCode": 0 }
+    },
+    {
+      "file": "chain-valid-unsigned.json",
+      "intent": "MUST-PASS by default: legitimately unsigned, integrity resting on the hash chain alone. Distinct from a stripped chain, and the distinction is the point.",
+      "default": { "valid": true, "exitCode": 0, "signature": "absent" },
+      "requireSignatures": {
+        "valid": false,
+        "exitCode": 1,
+        "failureCode": "SIGNATURES_REQUIRED_SHORTFALL"
+      }
+    },
+    {
+      "file": "chain-stripped-signature.json",
+      "intent": "MUST-FAIL unconditionally: signedBy survives, signature does not. Hash and linkage still verify, so this is the case where chain integrity holds and signer attribution fails. It must fail WITHOUT the strict flag, because the attacker chooses whether the verifier runs strict.",
+      "default": {
+        "valid": false,
+        "exitCode": 1,
+        "failureCode": "SIGNATURE_STRIPPED",
+        "signature": "stripped",
+        "hashValid": true,
+        "linkageValid": true
+      },
+      "requireSignatures": {
+        "valid": false,
+        "exitCode": 1,
+        "failureCode": "SIGNATURE_STRIPPED"
+      }
+    },
+    {
+      "file": "chain-tampered-payload.json",
+      "intent": "MUST-FAIL: payload edited after hashing.",
+      "default": { "valid": false, "exitCode": 1, "failureCode": "EVENT_HASH_MISMATCH" },
+      "requireSignatures": { "valid": false, "exitCode": 1, "failureCode": "EVENT_HASH_MISMATCH" }
+    },
+    {
+      "file": "chain-broken-linkage.json",
+      "intent": "MUST-FAIL: previousHash does not match the prior event's eventHash.",
+      "default": { "valid": false, "exitCode": 1, "failureCode": "LINKAGE_MISMATCH" },
+      "requireSignatures": { "valid": false, "exitCode": 1, "failureCode": "LINKAGE_MISMATCH" }
+    },
+    {
+      "file": "chain-bad-head.json",
+      "intent": "MUST-FAIL: chain head carries a non-null previousHash.",
+      "default": { "valid": false, "exitCode": 1, "failureCode": "CHAIN_HEAD_NOT_NULL" },
+      "requireSignatures": { "valid": false, "exitCode": 1, "failureCode": "CHAIN_HEAD_NOT_NULL" }
+    },
+    {
+      "file": "chain-bad-signature.json",
+      "intent": "MUST-FAIL: signature present, key supplied, does not verify.",
+      "default": { "valid": false, "exitCode": 1, "failureCode": "SIGNATURE_INVALID" },
+      "requireSignatures": { "valid": false, "exitCode": 1, "failureCode": "SIGNATURE_INVALID" }
+    },
+    {
+      "file": "chain-signature-domain-mismatch.json",
+      "intent": "MUST-FAIL: the signature verifies, but over the other signature domain. Signer and verifier disagree on what message was signed.",
+      "default": { "valid": false, "exitCode": 1, "failureCode": "SIGNATURE_DOMAIN_MISMATCH" },
+      "requireSignatures": {
+        "valid": false,
+        "exitCode": 1,
+        "failureCode": "SIGNATURE_DOMAIN_MISMATCH"
+      }
+    }
+  ]
+}
