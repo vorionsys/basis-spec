@@ -1,0 +1,87 @@
+{
+  "$comment": [
+    "Known-answer canonicalization vectors.",
+    "",
+    "Naming a property is not pinning it. Before this file the canonicalizer was",
+    "correct on every axis below, but correct because JavaScript’s default",
+    "comparator happens to match RFC 8785 rather than because anything held it",
+    "there. Swapping in localeCompare passed the entire suite while changing the",
+    "bytes, because no vector contained a non-ASCII key.",
+    "",
+    "Each case pins one axis where a \"JCS-compatible\" implementation can silently",
+    "diverge. `canonicalUtf8Hex` is the actual pin: hex removes any question of",
+    "editor encoding, BOM or escaping. `sha256` is the same bytes hashed, which is",
+    "what a chain would anchor.",
+    "",
+    "An independent implementation canonicalizes `input`, encodes UTF-8, and",
+    "compares hex. Agreement means two implementations agree, not one agreeing",
+    "with itself."
+  ],
+  "spec": "RFC 8785 (JSON Canonicalization Scheme)",
+  "cases": [
+    {
+      "id": "utf16-code-unit-ordering",
+      "axis": "RFC 8785 §3.2.3 — sort by UTF-16 code units",
+      "why": "U+10000 encodes as the surrogate pair D800 DC00. Its FIRST code unit (0xD800) is below 0xFFFD, so it sorts BEFORE U+FFFD even though its code point is far higher. A canonicalizer sorting by code point, or by locale, puts these the other way round and every hash downstream differs.",
+      "input": {
+        "�": 1,
+        "𐀀": 2
+      },
+      "expectedKeyOrder": [
+        "𐀀",
+        "�"
+      ],
+      "canonical": "{\"𐀀\":2,\"�\":1}",
+      "canonicalUtf8Hex": "7b22f0908080223a322c22efbfbd223a317d",
+      "sha256": "2be8040fe3029f9de464f315235716337d3ef13fe83fe32a481281b77a32112c"
+    },
+    {
+      "id": "no-unicode-normalization",
+      "axis": "RFC 8785 §3.1 — no normalization",
+      "why": "Composed U+00E9 and decomposed e + U+0301 are the same grapheme and different strings. JCS does not normalize, so both survive as distinct keys. A canonicalizer that NFC-normalizes collapses them into one and silently drops a field.",
+      "input": {
+        "é": "composed",
+        "é": "decomposed"
+      },
+      "expectedKeyOrder": [
+        "é",
+        "é"
+      ],
+      "canonical": "{\"é\":\"decomposed\",\"é\":\"composed\"}",
+      "canonicalUtf8Hex": "7b2265cc81223a226465636f6d706f736564222c22c3a9223a22636f6d706f736564227d",
+      "sha256": "8117f7eb721338d1c046fc7a3905d1f77b7a920abc82436194992a55af52f571"
+    },
+    {
+      "id": "locale-independent-ordering",
+      "axis": "RFC 8785 §3.2.3 — ordering is not locale-aware",
+      "why": "localeCompare places \"ä\" next to \"a\". UTF-16 code units place it after \"z\" (0x00E4 > 0x007A). This is the single most plausible well-meant edit that breaks interop, and it passes any test suite that only uses ASCII keys.",
+      "input": {
+        "z": 1,
+        "ä": 2,
+        "a": 3
+      },
+      "expectedKeyOrder": [
+        "a",
+        "z",
+        "ä"
+      ],
+      "canonical": "{\"a\":3,\"z\":1,\"ä\":2}",
+      "canonicalUtf8Hex": "7b2261223a332c227a223a312c22c3a4223a327d",
+      "sha256": "db9f98f8f834a409b5fc0798ba4c3ff4baf60b13f314723742ca596753248d28"
+    },
+    {
+      "id": "non-ascii-emitted-raw",
+      "axis": "RFC 8785 §3.2.2 — minimal escaping",
+      "why": "Non-ASCII is emitted as raw UTF-8, not as a \\uXXXX escape. A canonicalizer using an ASCII-safe serializer produces different bytes for identical input.",
+      "input": {
+        "k": "é😀"
+      },
+      "expectedKeyOrder": [
+        "k"
+      ],
+      "canonical": "{\"k\":\"é😀\"}",
+      "canonicalUtf8Hex": "7b226b223a22c3a9f09f9880227d",
+      "sha256": "42d2df3d760c124e559ec0cb0816563de9ed7ee19465169d23424db3c74d8a13"
+    }
+  ]
+}

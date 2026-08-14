@@ -27,7 +27,7 @@ export const SUITE_NAME = '@vorionsys/basis-spec-conformance' as const;
  * published) until that guard existed, which meant every conformance
  * result document cited a suite version that was never released.
  */
-export const SUITE_VERSION = '0.4.0' as const;
+export const SUITE_VERSION = '0.5.0' as const;
 
 function readStampedRevision(): string | undefined {
   try {
