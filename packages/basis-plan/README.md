@@ -22,9 +22,18 @@ Unlike a classifier score — which nobody can reproduce without your weights, r
 
 ## Install
 
+Not yet published to npm. Until it is, build it from this repository and install the packed tarball:
+
 ```bash
-npm install @vorionsys/basis-plan
+git clone https://github.com/vorionsys/basis-spec && cd basis-spec
+npm install && npm run build
+npm pack -w @vorionsys/basis-plan
+
+# then, in your project:
+npm install /path/to/basis-spec/vorionsys-basis-plan-0.1.0.tgz
 ```
+
+Build the whole repository rather than this package alone: it depends on the workspace's `@vorionsys/basis-spec`, which must be built first.
 
 ## Use
 

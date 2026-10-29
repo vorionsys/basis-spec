@@ -27,9 +27,18 @@ Key generation runs a real **distributed key generation** — no dealer, so no s
 
 ## Install
 
+Not yet published to npm. Until it is, build it from this repository and install the packed tarball:
+
 ```bash
-npm install @vorionsys/basis-quorum
+git clone https://github.com/vorionsys/basis-spec && cd basis-spec
+npm install && npm run build
+npm pack -w @vorionsys/basis-quorum
+
+# then, in your project:
+npm install /path/to/basis-spec/vorionsys-basis-quorum-0.1.0.tgz
 ```
+
+Build the whole repository rather than this package alone: it depends on the workspace's `@vorionsys/basis-spec`, which must be built first.
 
 ## Running a round
 
