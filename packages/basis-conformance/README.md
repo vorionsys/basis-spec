@@ -1,36 +1,46 @@
 # `@vorionsys/basis-spec-conformance`
 
-The official BASIS conformance test suite **and the public reference verifier for RFC-0002 proof chains**. Anyone — vendor, customer, auditor — can run the suite against the canonical spec and get a machine-readable report of which parts of the standard the implementation actually honors, and can independently verify any runtime's proof chain with `basis-conformance verify`. Live-endpoint mode arrives in v0.3.
+Self-tests for this repository, and a public verifier for RFC-0002 proof chains. `basis-conformance run` executes the tests in this package against `@vorionsys/basis-spec` and the RFC-0003 schema. `basis-conformance verify` checks a chain file. There is no live vendor-endpoint mode in this package (current version 0.5.0). A passing run is not a certification of another product.
 
-This package is the third leg of public-trust verification, alongside [`@vorionsys/basis-spec`](../basis) (the spec) and [RFC-0003](../../rfcs/0003-conformance-attestation.md) (the signed scorecard format).
+It sits next to [`@vorionsys/basis-spec`](../basis) (the parameters) and [RFC-0003](../../rfcs/0003-conformance-attestation.md) (the scorecard format). RFC-0003 is Draft. This package does not sign or publish scorecards.
 
 ## What this ships
 
-Two things, with different jobs:
+Three commands, with different jobs:
 
-1. **The conformance suite** (`run`) — self-test mode. Runs against `@vorionsys/basis-spec` (the canonical TypeScript representation of the spec) and `schemas/attestation-v1.json` (the RFC-0003 attestation schema). A passing run proves the spec is internally coherent and the canonical impl correctly implements it. It does not yet drive a live runtime endpoint — that's the vendor-endpoint mode still to come (RFC-0004 will define the endpoints required).
+1. **The conformance suite** (`run`) — self-test mode. Runs against `@vorionsys/basis-spec` and `schemas/attestation-v1.json`. A passing run means these tests passed. It does not call a live runtime. Vendor-endpoint mode is not implemented. A comment in `src/index.ts` still says that mode would be specified as RFC-0004; the document at `rfcs/0004-hash-suite-convergence.md` is a different draft (hash-suite convergence).
 
-2. **The public reference verifier** (`verify`, new in v0.2) — cryptography, not self-test. Point it at *any* runtime's proof chain and it recomputes the canonical bytes, re-derives `eventHash`/`eventHash3`, walks `previousHash` linkage, and checks detached Ed25519 signatures. This is the piece that lets a buyer or auditor verify a BASIS chain **without vendor tooling and without reading proprietary source**.
+2. **The public reference verifier** (`verify`, since 0.2.0) — cryptography, not self-test. Point it at a proof-chain JSON file and it recomputes the canonical bytes, re-derives `eventHash`/`eventHash3`, walks `previousHash` linkage, and checks detached Ed25519 signatures. `valid: true` means the record checks out. It is not a trust or compliance verdict.
 
-## What's tested (110 tests across 7 suites)
+3. **`validate`** — structural check of required RFC-0002 fields. It does not verify signatures or the hash chain.
+
+## What's tested (161 tests, 11 files, at package 0.5.0)
+
+Counted by `npm run build && npm test` in this repo. The checked-in `conformance-results.json` is an older run (87 tests) and is not that result. Test comments also name an "ATSF whitepaper"; that document is not in this repository, so those section numbers are not checked here. The constants under test live in `packages/basis/src/canonical.ts`.
 
 | Suite | What it asserts | Spec ref |
 |---|---|---|
-| `canonical-params.test.ts` | All published constants match spec values: trust-score range, gain rate, penalty ratios (3→10), 8 tiers, 6 risk levels, hysteresis, promotion delays | ATSF whitepaper §4 |
-| `trust-formulas.test.ts` | `gain = GAIN_RATE × ln(1+headroom) × ∛risk`, `loss = -P(T) × R × ln(1+C/2)`, `P(T) = 3+T` | ATSF whitepaper §5 |
-| `proof-event-shape.test.ts` | RFC-0002 schema validation: well-formed events pass, malformed events fail with clear paths, shadow-mode HITL refines work | [RFC-0002](../../rfcs/0002-proof-event-chain.md) |
-| `proof-chain-linkage.test.ts` | `previousHash[i] = eventHash[i-1]` across whole chain, broken links detected at first break | [RFC-0002 §"Verification"](../../rfcs/0002-proof-event-chain.md) |
-| `canonical-serialization.test.ts` | Sorted-key JSON, no whitespace, shortest decimals, idempotent canonicalization | [RFC-0002 §"Canonical serialization"](../../rfcs/0002-proof-event-chain.md) |
-| `chain-verification.test.ts` | **(v0.2)** End-to-end verification against golden vectors: valid signed chain, tampered payload, cut linkage, non-null head, corrupted signature, signature-domain mismatch, fail-closed posture | [RFC-0002 §"Verification procedure"](../../rfcs/0002-proof-event-chain.md) |
-| `attestation-format.test.ts` | RFC-0003 JSON Schema strict-mode validation, conditional requirements (revoked → revokedAt+reason; thirdParty → vendorAttestation) | [RFC-0003](../../rfcs/0003-conformance-attestation.md) |
+| `canonical-params.test.ts` (22) | Published constants: trust-score range, gain rate, penalty ratios (3→10), 8 tiers, 6 risk levels, hysteresis, promotion delays | `packages/basis/src/canonical.ts` |
+| `trust-formulas.test.ts` (14) | `gain = GAIN_RATE × ln(1+headroom) × ∛risk`, `loss = -P(T) × R × ln(1+C/2)`, `P(T) = 3+T` | `packages/basis/src/canonical.ts` |
+| `proof-event-shape.test.ts` (17) | RFC-0002 schema validation: well-formed events pass, malformed events fail with clear paths, shadow-mode HITL refines work | [RFC-0002](../../rfcs/0002-proof-event-chain.md) |
+| `proof-chain-linkage.test.ts` (8) | `previousHash[i] = eventHash[i-1]` across whole chain, broken links detected at first break | [RFC-0002 §"Verification"](../../rfcs/0002-proof-event-chain.md) |
+| `canonical-serialization.test.ts` (12) | Sorted-key JSON, no whitespace, shortest decimals, idempotent canonicalization | [RFC-0002 §"Canonical serialization"](../../rfcs/0002-proof-event-chain.md) |
+| `chain-verification.test.ts` (26) | End-to-end verification against golden vectors: valid signed chain, tampered payload, cut linkage, non-null head, corrupted signature, signature-domain mismatch, fail-closed posture | [RFC-0002 §"Verification procedure"](../../rfcs/0002-proof-event-chain.md) |
+| `attestation-format.test.ts` (12) | RFC-0003 JSON Schema strict-mode validation, conditional requirements (revoked → revokedAt+reason; thirdParty → vendorAttestation) | [RFC-0003](../../rfcs/0003-conformance-attestation.md) |
+| `canonical-known-answers.test.ts` (13) | Known answers for JSON canonicalization axes pinned in 0.5.0 | [RFC-0002 §"Canonical serialization"](../../rfcs/0002-proof-event-chain.md) |
+| `expected-contract.test.ts` (29) | Vector files declare the outcome `verifyChain` must report (0.4.0) | [RFC-0002 §"Verification procedure"](../../rfcs/0002-proof-event-chain.md) |
+| `manifest-validator.test.ts` (5) | `validateManifest` is structural only, including on a missing signature | [RFC-0002 §"Schema"](../../rfcs/0002-proof-event-chain.md) |
+| `suite-meta.test.ts` (3) | `SUITE_VERSION` matches this package's `package.json` | this package |
 
 ## How to run
 
-### Quickly (vitest direct)
+### From this repository
 
 ```bash
-cd packages/basis-conformance
+# From the repository root. `npm test` alone fails until @vorionsys/basis-spec is built:
+# the suite imports that package from its dist/ entry.
 npm install
+npm run build
 npm test
 ```
 
@@ -69,7 +79,7 @@ npx basis-conformance verify vectors/chain-tampered-payload.json --keys vectors/
 
 #### Golden vectors
 
-`vectors/` ships a valid signed chain plus five tampered variants (payload edit, cut linkage, non-null head, corrupted signature, signature-domain mismatch) and an unsigned chain. They are deterministic — fixed key seed, fixed timestamps — so regeneration produces byte-identical files.
+`vectors/` ships `chain-valid-signed.json`, `chain-valid-unsigned.json`, and six failing chains: payload edit, cut linkage, non-null head, corrupted signature, signature-domain mismatch, and stripped signature. Regeneration is described as deterministic (fixed key seed, fixed timestamps) in `scripts/generate-vectors.mjs`.
 
 They are generated by `scripts/generate-vectors.mjs`, which carries its **own independent implementation** of RFC-0002 §"Canonical serialization", written from the spec text rather than imported from the verifier. Sharing the implementation would make the tests circular; keeping them separate means a passing run proves two independent readings of the spec agree on the exact bytes. That byte agreement is the property every cross-vendor chain depends on.
 
@@ -120,17 +130,18 @@ Every results document embeds `suite.revision`: the git commit sha of the source
 5. Buyer/auditor fetches + verifies signature + re-runs failing tests locally
 ```
 
-A signing utility ships with v0.2; for v0.1 you can pipe the results JSON into your own signing pipeline.
+This package does not include an attestation signing utility. `verify` checks signatures; it does not sign a scorecard.
 
-## Roadmap
+## What later versions actually shipped
 
-| Version | Adds |
+Package version is **0.5.0**. `CHANGELOG.md` stops at conformance 0.3.0. An older roadmap in this file said 0.3 would add vendor-endpoint mode, an RFC-0004 endpoint spec, and a signing utility, and that 0.4 would add property tests and pluggable profiles. Those items are not in the tree. Releases after 0.2, from the version bumps in git:
+
+| Version | What landed |
 |---|---|
-| v0.1 | Self-test mode, 6 test suites, CLI, JSON output, RFC-0003 result shape |
-| **v0.2 (this release)** | **Public reference verifier** (`verifyChain` + `verify` CLI): canonical-byte recomputation, sha256/sha3-256, linkage walk, Ed25519 signature checking. Golden vectors with an independent canonicalizer. Exported canonicalizer for vendor impls. RFC-0002 Erratum E-1 |
-| v0.3 | Vendor-endpoint mode (point at a live BASIS runtime URL), RFC-0004 endpoint spec, attestation signing utility |
-| v0.4 | Property-based tests for canonical-serialization edge cases; pluggable test profiles (minimal / strict / production) |
-| v1.0 | Stable test ID namespace, public profile registry, third-party test contributions |
+| 0.2.0 | `verifyChain` and the `verify` CLI, golden vectors, exported canonicalizer, RFC-0002 Erratum E-1 |
+| 0.3.0 | Stripped signatures fail; `--require-signatures` requires a signature that verified (`CHANGELOG.md`) |
+| 0.4.0 | Machine-readable failure codes and the two-sided vector contract (`expected-contract.test.ts`) |
+| 0.5.0 | JCS known-answer vectors (`canonical-known-answers.test.ts`) |
 
 ## Reporting issues / proposing tests
 

@@ -1,14 +1,16 @@
 # @vorionsys/basis-spec
 
 > **BASIS** — Baseline Authority for Safe & Interoperable Systems.
-> Open standard for AI agent trust and governance.
+> Draft proposal for AI agent trust and governance. The RFCs are Draft.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![npm](https://img.shields.io/npm/v/@vorionsys/basis-spec)](https://www.npmjs.com/package/@vorionsys/basis-spec)
 
-This package is the canonical TypeScript representation of the BASIS spec.
-It exports the tier definitions, risk levels, formulas, and constants any
-conforming implementation can rely on.
+This package is the TypeScript representation of the BASIS parameters in this
+repository. It exports tier definitions, risk levels, formulas, constants,
+and proof-chain types. The RFCs are Draft. `BASIS_SPEC_VERSION` (`1.0.0`) is
+not a ratification mark. This package's own version (1.3.0) is the
+distribution version. See the repository README for the status line.
 
 ## What BASIS defines
 
@@ -85,10 +87,10 @@ if (!result.success) console.error(result.error.format());
 
 ## Conformance
 
-Any implementation that imports from this package and respects the canonical
-values is considered BASIS-conforming at the parameter level. To verify
-behavioural conformance (formulas, tier transitions, lifecycle invariants),
-use the companion test-vector package:
+Importing these constants does not certify an implementation. The companion
+package self-tests this package (formulas, tier values, lifecycle constants,
+proof-chain shape, and chain verification). It does not issue a conformance
+certificate:
 
 ```bash
 npm install --save-dev @vorionsys/basis-spec-conformance
