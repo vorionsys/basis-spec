@@ -6,7 +6,7 @@ in `@vorionsys/basis-spec`.
 
 | File | RFC | Purpose |
 |---|---|---|
-| [`attestation-v1.json`](attestation-v1.json) | [RFC-0003](../rfcs/0003-conformance-attestation.md) | Schema for the signed conformance scorecard each BASIS-compliant product publishes per release. |
+| [`attestation-v1.json`](attestation-v1.json) | [RFC-0003](../rfcs/0003-conformance-attestation.md) | JSON Schema for the RFC-0003 scorecard document. This repository does not publish a signed scorecard. |
 
 ## How to use
 
@@ -17,19 +17,18 @@ npm install ajv
 ```js
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-// schemas/ ships in this repository (vorionsys/basis-spec), not in the npm package
+// The file lives in this repository at schemas/attestation-v1.json.
+// @vorionsys/basis-spec does not ship it. The conformance package build
+// copies schemas/ into that package's dist/schemas.
 import schema from './schemas/attestation-v1.json' with { type: 'json' };
 
 const ajv = new Ajv({ strict: false });
 addFormats(ajv);
 const validate = ajv.compile(schema);
 
-const attestation = await fetch('https://cognigate.dev/attestations/cognigate-0.1.0.json').then(r => r.json());
-if (!validate(attestation)) {
-  console.error('attestation failed validation:', validate.errors);
-} else {
-  console.log('schema valid — now verify the signature');
-}
+// Validate a document you already have. This repo does not publish one,
+// and it does not name a live attestation URL.
+// const ok = validate(attestation);
 ```
 
 After schema validation, fetch the signing key (by `signedBy`) and verify
