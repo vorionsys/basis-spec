@@ -17,7 +17,7 @@ import {
   sign as nodeSign,
   type KeyObject,
 } from 'node:crypto';
-import type { Proposal, Validator, VoteResult } from './round.js';
+import type { Proposal, RuntimeSigner, Validator, VoteResult } from './round.js';
 
 /** DER PKCS8 prefix for a raw 32-byte Ed25519 seed (RFC 8410). */
 const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
@@ -87,19 +87,51 @@ export function createLocalValidator(opts: LocalValidatorOptions): Validator & {
   };
 }
 
+export interface LocalSignerOptions {
+  /** `signedBy` identity for events this runtime signs. Not a validator id. */
+  readonly signerId: string;
+  /** Same forms as LocalValidatorOptions.privateKey; omit to generate fresh. */
+  readonly privateKey?: KeyObject | string;
+}
+
+/**
+ * Build a `RuntimeSigner` backed by a local Ed25519 key — the coordinator's
+ * own identity, used for `quorum_requested` and for an `insufficient_quorum`
+ * resolution that no aggregate can cover.
+ */
+export function createLocalSigner(opts: LocalSignerOptions): RuntimeSigner & {
+  readonly privateKey: KeyObject;
+} {
+  const privateKey = resolvePrivateKey(opts.privateKey);
+  const publicKey = createPublicKey(privateKey)
+    .export({ format: 'der', type: 'spki' })
+    .subarray(-32)
+    .toString('hex');
+  return {
+    signerId: opts.signerId,
+    publicKey,
+    privateKey,
+    async sign(bytes: Uint8Array): Promise<string> {
+      return nodeSign(null, bytes, privateKey).toString('base64');
+    },
+  };
+}
+
 /**
  * Build the `signedBy -> public key` map a chain verifier needs.
  *
  * Includes each validator's own key plus the quorum group key, because a
  * quorum chain carries both individually-signed votes and a group-signed
- * resolution.
+ * resolution — and the runtime's key when it signs the request.
  */
 export function buildKeyring(
   validators: ReadonlyArray<Validator>,
   group?: { groupId: string; groupPublicKey: string },
+  runtimeSigner?: { signerId: string; publicKey: string },
 ): Record<string, string> {
   const keyring: Record<string, string> = {};
   for (const v of validators) keyring[v.validatorId] = v.publicKey;
   if (group) keyring[group.groupId] = group.groupPublicKey;
+  if (runtimeSigner) keyring[runtimeSigner.signerId] = runtimeSigner.publicKey;
   return keyring;
 }

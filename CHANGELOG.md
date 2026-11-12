@@ -2,6 +2,19 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — @vorionsys/basis-quorum
+
+### Added
+- **`runtimeSigner` on `runQuorumRound`**, and `createLocalSigner()` to make one. When given, `quorum_requested` is signed with the runtime's own key, so a quorum chain passes `basis-conformance verify --require-signatures` end to end. It also signs an `insufficient_quorum` resolution, which RFC-0005 already says MUST carry the runtime's signature because no aggregate exists. `buildKeyring()` takes the signer as an optional third argument.
+- `verifyQuorumRound()` reports `resolution-runtime-signed` when any outcome other than `insufficient_quorum` is signed by the runtime that opened the round. That signature is a coordinator claim, never quorum authority.
+
+### Fixed
+- `verifyQuorumRound()` no longer reports a runtime-signed `insufficient_quorum` resolution as `attested`.
+- The basis-quorum tests ran against `basis-spec-conformance@0.2.0` from npm, which predates the strict `--require-signatures` fix in 0.3.0, so they passed on a chain the current verifier refuses. The dev dependency now resolves to the workspace verifier.
+
+### Compatibility
+- Optional and additive. Without `runtimeSigner`, rounds are byte-identical to before and the golden vectors are unchanged.
+
 ## [@vorionsys/basis-spec-conformance@0.3.0] — 2026-08-13
 
 **Security fix.** The reference verifier reported a chain whose signatures had been **deleted** as `valid: true`, exit `0` — including under `--require-signatures`. Anyone holding a signed chain could strip every `signature` field, leave `signedBy` in place, and the chain still verified: hashes and linkage are computed over the canonical event bytes, which do not include the signature, so removing it breaks nothing the verifier was checking. No key, no forgery and no hash work required — the cheapest possible attack on a receipt chain, against the one property the chain exists to provide.

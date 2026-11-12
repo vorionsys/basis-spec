@@ -313,7 +313,25 @@ export function verifyQuorumRound(
   }
 
   // --- Outcome consistency --------------------------------------------------
-  const attested = typeof resolutionEvent.signature === 'string' && resolutionEvent.signature.length > 0;
+  // A signature on the resolution is a quorum attestation only when it is not
+  // the runtime's own. The runtime is identified by whoever signed the
+  // request; it may sign an insufficient_quorum resolution (RFC-0005 requires
+  // it to), and that record MUST NOT read as quorum-attested.
+  const hasSignature =
+    typeof resolutionEvent.signature === 'string' && resolutionEvent.signature.length > 0;
+  const runtimeSigned =
+    hasSignature &&
+    requestEvent.signedBy !== undefined &&
+    resolutionEvent.signedBy === requestEvent.signedBy;
+  const attested = hasSignature && !runtimeSigned && resolution.outcome !== 'insufficient_quorum';
+
+  if (runtimeSigned && resolution.outcome !== 'insufficient_quorum') {
+    fail(
+      'resolution-runtime-signed',
+      `outcome "${resolution.outcome}" is signed by the runtime ("${resolutionEvent.signedBy}") that opened the round, not by the quorum group`,
+      resolutionEvent.eventId,
+    );
+  }
 
   if (resolution.outcome === 'approved') {
     if (recomputedTally.approve < m) {

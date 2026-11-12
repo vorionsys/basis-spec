@@ -20,8 +20,8 @@ import { verifyChain } from '@vorionsys/basis-spec-conformance';
 
 import { verifyQuorumRound } from '../verify-round.js';
 import { createGroupViaDkg, aggregateAttestation } from '../group.js';
-import { createLocalValidator, buildKeyring } from '../validators.js';
-import { runQuorumRound } from '../round.js';
+import { createLocalValidator, createLocalSigner, buildKeyring } from '../validators.js';
+import { runQuorumRound, type RunRoundOptions } from '../round.js';
 import type { QuorumProofEvent } from '../types.js';
 
 const VECTORS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'vectors');
@@ -197,18 +197,25 @@ describe('quorum group: threshold guards', () => {
 });
 
 describe('quorum round: live round end to end', () => {
-  it('runs a round and produces a chain that passes both passes', async () => {
+  /** A 2-of-3 round; `votes[i]` is validator i's vote (undefined = no response). */
+  function liveRound(
+    votes: ReadonlyArray<'approve' | 'reject' | undefined>,
+    extra: Partial<RunRoundOptions> = {},
+  ) {
     const validatorIds = ['v1', 'v2', 'v3'];
     const validators = validatorIds.map((id, i) =>
       createLocalValidator({
         validatorId: id,
-        evaluate: () => ({ vote: i === 2 ? 'reject' : 'approve', rationale: 'test' }),
+        evaluate: () => {
+          const vote = votes[i];
+          if (vote === undefined) throw new Error('no response');
+          return { vote, rationale: 'test' };
+        },
       }),
     );
     const group = createGroupViaDkg({ groupId: 'grp', validatorIds, m: 2 });
-
     let tick = 0;
-    const result = await runQuorumRound({
+    const run = runQuorumRound({
       group,
       validators,
       proposal: {
@@ -228,22 +235,99 @@ describe('quorum round: live round end to end', () => {
         let i = 0;
         return () => `evt-${i++}`;
       })(),
+      ...extra,
     });
+    return { run, validators, group };
+  }
+
+  it('runs a round and produces a chain that passes both passes', async () => {
+    const runtime = createLocalSigner({ signerId: 'runtime:test' });
+    const { run, validators, group } = liveRound(['approve', 'approve', 'reject'], {
+      runtimeSigner: runtime,
+    });
+    const result = await run;
 
     expect(result.outcome).toBe('approved'); // 2 approvals meets m=2
     expect(result.attested).toBe(true);
     expect(result.tally).toEqual({ approve: 2, reject: 1, abstain: 0, noResponse: 0 });
 
     const chain = result.events as unknown as QuorumProofEvent[];
+    expect(chain[0]!.eventType).toBe('quorum_requested');
+    expect(chain[0]!.signedBy).toBe('runtime:test');
+
     const integrity = verifyChain(chain, {
+      publicKeys: buildKeyring(validators, group, runtime),
+      requireSignatures: true,
+    });
+    expect(integrity.valid).toBe(true);
+    // 1 request (runtime) + 3 votes (own keys) + 1 resolution (group aggregate).
+    expect(integrity.signaturesValid).toBe(5);
+
+    const round = verifyQuorumRound(chain, 'q1');
+    expect(round.issues).toEqual([]);
+    expect(round.valid).toBe(true);
+  });
+
+  it('without a runtime signer the request is unsigned and strict verification refuses it', async () => {
+    const { run, validators, group } = liveRound(['approve', 'approve', 'reject']);
+    const chain = (await run).events as unknown as QuorumProofEvent[];
+    expect(chain[0]!.signedBy).toBeUndefined();
+
+    const strict = verifyChain(chain, {
       publicKeys: buildKeyring(validators, group),
+      requireSignatures: true,
+    });
+    expect(strict.valid).toBe(false);
+    expect(strict.signaturesValid).toBe(4);
+    // The coherence pass does not depend on the request signature.
+    expect(verifyQuorumRound(chain, 'q1').valid).toBe(true);
+  });
+
+  it('an insufficient_quorum resolution is signed by the runtime, not presented as attested', async () => {
+    const runtime = createLocalSigner({ signerId: 'runtime:test' });
+    const { run, validators, group } = liveRound(['approve', undefined, undefined], {
+      runtimeSigner: runtime,
+    });
+    const result = await run;
+    expect(result.outcome).toBe('insufficient_quorum');
+    expect(result.attested).toBe(false);
+
+    const chain = result.events as unknown as QuorumProofEvent[];
+    const resolution = chain[chain.length - 1]!;
+    expect(resolution.eventType).toBe('quorum_resolved');
+    expect(resolution.signedBy).toBe('runtime:test');
+
+    const integrity = verifyChain(chain, {
+      publicKeys: buildKeyring(validators, group, runtime),
       requireSignatures: true,
     });
     expect(integrity.valid).toBe(true);
 
     const round = verifyQuorumRound(chain, 'q1');
     expect(round.issues).toEqual([]);
-    expect(round.valid).toBe(true);
+    expect(round.attested).toBe(false);
+  });
+
+  it('catches an approval signed by the runtime instead of the quorum group', async () => {
+    const runtime = createLocalSigner({ signerId: 'runtime:test' });
+    const { run } = liveRound(['approve', 'approve', 'approve'], { runtimeSigner: runtime });
+    const chain = [...((await run).events as unknown as QuorumProofEvent[])];
+    const last = chain[chain.length - 1]!;
+    // A coordinator re-signs the resolution with its own key. verifyChain would
+    // accept it (the runtime key is in the keyring); the coherence pass must not.
+    chain[chain.length - 1] = { ...last, signedBy: 'runtime:test' };
+    const r = verifyQuorumRound(chain, 'q1');
+    expect(r.valid).toBe(false);
+    expect(codes(r)).toContain('resolution-runtime-signed');
+  });
+
+  it('refuses a runtime signer that reuses a validator or group identity', async () => {
+    for (const signerId of ['v2', 'grp']) {
+      const { run } = liveRound(['approve', 'approve', 'approve'], {
+        runtimeSigner: createLocalSigner({ signerId }),
+      });
+      await expect(run).rejects.toThrow(/must not be a validator or the quorum group/);
+    }
   });
 
   it('rejects a validator list that does not match the group size', async () => {
