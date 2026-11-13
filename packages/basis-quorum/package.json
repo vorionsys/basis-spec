@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@vorionsys/basis-spec-conformance": "^0.2.0",
+    "@vorionsys/basis-spec-conformance": "^0.5.0",
     "typescript": "^5.4.0",
     "vitest": "^3.2.6"
   },

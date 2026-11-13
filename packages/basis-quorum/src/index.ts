@@ -101,6 +101,7 @@ export {
   type Proposal,
   type VoteResult,
   type Validator,
+  type RuntimeSigner,
   type RunRoundOptions,
   type RoundResult,
 } from './round.js';
@@ -113,6 +114,8 @@ export {
 
 export {
   createLocalValidator,
+  createLocalSigner,
   buildKeyring,
   type LocalValidatorOptions,
+  type LocalSignerOptions,
 } from './validators.js';

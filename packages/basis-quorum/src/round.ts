@@ -80,6 +80,30 @@ export interface Validator {
   sign(bytes: Uint8Array): Promise<string>;
 }
 
+/**
+ * The runtime's own signing identity — the coordinator, not a validator.
+ *
+ * RFC-0005 leaves `quorum_requested` without a named signer and says an
+ * `insufficient_quorum` resolution "MUST be signed by whatever authority the
+ * runtime can offer (typically the runtime's own key)". This is that key.
+ *
+ * Signing the request binds the coordinator to the validator set and threshold
+ * it declared, so a strict RFC-0002 verifier (`--require-signatures`) accepts
+ * the whole chain rather than tripping on one unsigned event. It is a claim by
+ * the coordinator, NOT quorum authority: the group aggregate on
+ * `quorum_resolved` remains the only record that proves a quorum agreed.
+ *
+ * `signerId` MUST NOT be a member of the validator set — a member key on the
+ * request or the resolution would blur attribution.
+ */
+export interface RuntimeSigner {
+  readonly signerId: string;
+  /** Ed25519 public key (hex, base64, or PEM SPKI). */
+  readonly publicKey: string;
+  /** Detached Ed25519 signature over canonical bytes, base64. */
+  sign(bytes: Uint8Array): Promise<string>;
+}
+
 export interface RunRoundOptions {
   readonly group: QuorumGroup;
   readonly validators: ReadonlyArray<Validator>;
@@ -101,6 +125,13 @@ export interface RunRoundOptions {
   readonly timeoutMs?: number;
   /** Which members attest the resolution. Defaults to the responders. */
   readonly attesterIds?: ReadonlyArray<string>;
+  /**
+   * The runtime's own key. When given, `quorum_requested` is signed with it,
+   * and so is an `insufficient_quorum` resolution (which has no aggregate).
+   * Omit it and both stay unsigned, as before — such a chain does not pass
+   * `basis-conformance verify --require-signatures`.
+   */
+  readonly runtimeSigner?: RuntimeSigner;
   /**
    * ⚠️ Fixtures only. Deterministic randomness for byte-stable golden vectors.
    * Leave undefined in production — FROST nonce reuse leaks key material.
@@ -156,6 +187,18 @@ export async function runQuorumRound(opts: RunRoundOptions): Promise<RoundResult
     );
   }
 
+  const runtimeSigner = opts.runtimeSigner;
+  if (runtimeSigner) {
+    if (
+      runtimeSigner.signerId === group.groupId ||
+      validators.some((v) => v.validatorId === runtimeSigner.signerId)
+    ) {
+      throw new Error(
+        `runtimeSigner "${runtimeSigner.signerId}" must not be a validator or the quorum group`,
+      );
+    }
+  }
+
   // --- 1. Declare the round, including the FULL validator set. -------------
   const requestedAt = now();
   const requestedPayload: QuorumRequestedPayload = {
@@ -176,7 +219,7 @@ export async function runQuorumRound(opts: RunRoundOptions): Promise<RoundResult
     },
     deadline: opts.deadline,
   };
-  chain.add({
+  const sealedRequest = chain.seal({
     eventId: nextEventId(),
     eventType: 'quorum_requested',
     correlationId: opts.correlationId,
@@ -186,6 +229,14 @@ export async function runQuorumRound(opts: RunRoundOptions): Promise<RoundResult
     recordedAt: requestedAt,
     shadowMode: 'production',
   });
+  if (runtimeSigner) {
+    // The coordinator signs what it declared: this validator set, this
+    // threshold, this deadline. Not quorum authority — a claim it is bound to.
+    const signature = await runtimeSigner.sign(sealedRequest.bytes);
+    chain.append(attachSignature(sealedRequest, runtimeSigner.signerId, signature));
+  } else {
+    chain.append(sealedRequest.event);
+  }
 
   // --- 2. Collect votes concurrently and blindly. --------------------------
   // No validator is given another's result; each sees only the proposal.
@@ -303,6 +354,12 @@ export async function runQuorumRound(opts: RunRoundOptions): Promise<RoundResult
         Buffer.from(aggregate).toString('base64'),
       ),
     );
+  } else if (runtimeSigner) {
+    // No quorum attestation obtainable. RFC-0005: the event MUST then be
+    // signed by whatever authority the runtime can offer — its own key, named
+    // in signedBy. Verifiable as a record; NOT quorum-attested.
+    const signature = await runtimeSigner.sign(sealedResolution.bytes);
+    chain.append(attachSignature(sealedResolution, runtimeSigner.signerId, signature));
   } else {
     // No quorum attestation obtainable. The event is still chained — the
     // record of a failed round matters — but it MUST NOT be presented as
