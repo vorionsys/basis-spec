@@ -2,6 +2,13 @@
 
 All notable changes to this repository are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — RFC-0008 draft (no behaviour change)
+
+### Added
+- **RFC-0008, Risk-Weighted Gain (Draft).** Proposes a per-action gain coefficient set by a risk factor, loss charged on the same coefficient so break-even depends on tier and position only, an evidence ceiling per demonstrated risk level, 24-hour volume normalisation, severe-failure demotion, and a certifier-assigned agent-class prior bound to CAR ID. Records that today's loss is neither fixed nor proportional to the action's gain: the realised loss-to-gain ratio is `P(T) × R^(2/3) × m(S)`, so the 3x to 10x curve holds only for READ at the midpoint.
+- `PROPOSED_RFC_0008` in `@vorionsys/basis-spec` `canonical.ts`: one non-normative object holding the draft values. No function reads it, and `calculateGain`, `calculateLoss` and every existing constant are unchanged.
+- `rfcs/examples/0008-model.mjs`, the model behind the RFC's tables.
+
 ## [Unreleased] — @vorionsys/basis-quorum
 
 ### Added
