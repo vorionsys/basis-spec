@@ -337,6 +337,77 @@ export const TRUST_INHERITANCE = 'NONE' as const;
 export const MAX_PROVENANCE_MODIFIER = 0;
 
 // ---------------------------------------------------------------------------
+// PROPOSED — RFC-0008 risk-weighted gain (Draft, NOT normative)
+//
+// These values are a proposal under review in rfcs/0008-risk-weighted-gain.md.
+// Nothing in this file uses them: calculateGain() and calculateLoss() above
+// are unchanged, and a conforming implementation MUST NOT apply these values
+// until RFC-0008 is accepted and the formulas above are revised to match.
+// They are grouped in one object so that no draft value can be mistaken for
+// a normative top-level constant.
+// ---------------------------------------------------------------------------
+
+/** @experimental RFC-0008 draft. Not used by any formula in this file. */
+export const PROPOSED_RFC_0008 = {
+  status: 'draft',
+  /**
+   * Bounds on the per-action gain coefficient k(a). k(a) replaces
+   * GAIN_RATE * cbrt(R) in the gain formula. The floor equals today's
+   * GAIN_RATE, so READ evidence earns exactly what it earns now; the
+   * ceiling is 5x the floor. Bounds chosen 2026-11-21 (RFC-0008 §12).
+   */
+  gainRateMin: 0.05,
+  gainRateMax: 0.25,
+  /**
+   * Risk factor rho(a) in [0, 1] by risk level. k(a) = min + rho * (max - min).
+   * Assigned by the enforcement point from the action's declared effects,
+   * never by the agent.
+   */
+  riskFactors: {
+    READ: 0,
+    LOW: 0.15,
+    MEDIUM: 0.35,
+    HIGH: 0.6,
+    CRITICAL: 0.85,
+    LIFE_CRITICAL: 1,
+  } as const satisfies Record<RiskLevel, number>,
+  /**
+   * Maximum upward adjustment of rho for irreversibility or blast radius:
+   * the factor may rise to at most the next level's value, never fall.
+   */
+  maxRiskFactorStepUp: 1,
+  /**
+   * Evidence ceiling: the highest score reachable given the highest risk
+   * level at which the agent has demonstrated evidence. Effective ceiling
+   * is min(observation-tier ceiling, this).
+   */
+  evidenceCeilings: {
+    READ: 499,
+    LOW: 649,
+    MEDIUM: 799,
+    HIGH: 950,
+    CRITICAL: 1000,
+    LIFE_CRITICAL: 1000,
+  } as const satisfies Record<RiskLevel, number>,
+  /** Successes at a level, inside the window, before that level counts as demonstrated. */
+  evidenceMinSuccesses: 20,
+  evidenceWindowDays: 90,
+  /**
+   * Volume normalisation. Within each window, events of one risk level are
+   * weighted w = min(1, fullWeightEventsPerLevel / n). The same weight is
+   * applied to gains and losses, so the break-even success rate is unchanged.
+   */
+  volumeWindowHours: 24,
+  fullWeightEventsPerLevel: 50,
+  /**
+   * Severe-failure demotion: a single failure whose risk-accumulator
+   * contribution P(T) * R is at or above this value demotes one tier
+   * immediately, bypassing hysteresis. Equals RISK_ACCUMULATOR.degradedThreshold.
+   */
+  severeFailureThreshold: 120,
+} as const;
+
+// ---------------------------------------------------------------------------
 // Spec version
 // ---------------------------------------------------------------------------
 
