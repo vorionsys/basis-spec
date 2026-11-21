@@ -354,7 +354,7 @@ export const PROPOSED_RFC_0008 = {
    * Bounds on the per-action gain coefficient k(a). k(a) replaces
    * GAIN_RATE * cbrt(R) in the gain formula. The floor equals today's
    * GAIN_RATE, so READ evidence earns exactly what it earns now; the
-   * ceiling is 5x the floor. See RFC-0008 for the 0.01..0.05 alternative.
+   * ceiling is 5x the floor. Bounds chosen 2026-11-21 (RFC-0008 §12).
    */
   gainRateMin: 0.05,
   gainRateMax: 0.25,

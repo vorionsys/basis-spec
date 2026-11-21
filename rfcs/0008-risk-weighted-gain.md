@@ -1,7 +1,7 @@
 # RFC-0008: Risk-Weighted Gain
 
 **Status:** Draft
-**Version:** 0.1
+**Version:** 0.2
 **Date:** 2026-11-21
 **Author:** Vorion LLC
 **Related:** `packages/basis/src/canonical.ts` (gain and loss formulas, `RISK_LEVELS`, `RISK_ACCUMULATOR`), CAR ID
@@ -14,7 +14,7 @@ Trust gain today depends mostly on **how many** successes an agent logs, not on 
 
 This RFC proposes four changes, which work together:
 
-1. **A per-action gain coefficient `k(a)`** set by a risk factor `ρ(a)`, bounded to a 5x spread. It replaces `GAIN_RATE × ∛R` in the gain formula.
+1. **A per-action gain coefficient `k(a)`** set by a risk factor `ρ(a)`, bounded to [0.05, 0.25], a 5x spread whose floor is today's `GAIN_RATE`. It replaces `GAIN_RATE × ∛R` in the gain formula.
 2. **Loss charged on the same `k(a)`**, so the break-even success rate depends on tier and score position only, not on the risk mix.
 3. **An evidence ceiling**: an agent cannot score above the ceiling for the highest risk level at which it has demonstrated evidence.
 4. **Volume normalisation**: within a 24-hour window, events beyond a fixed count per risk level carry proportionally less weight, on gains and losses alike.
@@ -56,6 +56,8 @@ The stated 3x to 10x penalty curve is the loss-to-gain ratio **only for a READ a
 C = 1000 throughout. Reproduce with `node rfcs/examples/0008-model.mjs`.
 
 The `∛R` versus `R` asymmetry is deliberate ("preventing risk-seeking behaviour as a path to faster gain"), and so is the midpoint reference (it stops agents parking near the ceiling to shrink their loss exposure). This RFC keeps the second and replaces the first with gating plus the evidence ceiling (§6).
+
+**Public claims.** Under today's formulas, "failures cost 3x to 10x a success" is true only for READ actions at the midpoint score. Documentation, sites and marketing should not quote the 3x to 10x ratio as a general property until loss and gain are reconciled, whether by this RFC or another change. The accurate statement today is that the penalty multiplier P(T) runs from 3 at T0 to 10 at T7.
 
 `@vorionsys/contracts` documents the same two formulas (`pre-action-gate.ts`) with `gainRate` defaulting to 0.01 instead of 0.05. That divergence is a separate finding; this RFC does not resolve it.
 
@@ -298,7 +300,7 @@ On acceptance, the values move to top-level constants (`GAIN_RATE_MIN`, `GAIN_RA
 
 ## 11. Alternatives considered
 
-- **k ∈ [0.01, 0.05].** This is the range first discussed, and it also lines up with the contracts `gainRate` default of 0.01. It slows all agents 2.5x to 5x relative to today's spec (agent H takes 1,523 days to reach T4) and does nothing about volume on its own. Kept as a recorded option; not recommended.
+- **k ∈ [0.01, 0.05].** This is the range first discussed, and it also lines up with the contracts `gainRate` default of 0.01. It slows all agents 2.5x to 5x relative to today's spec (agent H takes 1,523 days to reach T4) and does nothing about volume on its own. Kept as a recorded option; not chosen.
 - **Keep loss proportional to R (severity) and change only gain.** This preserves today's failure costs, but the ratio then drifts by `R/k(a)` and break-even varies with the risk mix. That is the drift this RFC set out to remove.
 - **Gain by agent type instead of by action.** Whoever picks the type controls the climb speed. Agents drift across types, and a fixed type list ages badly. Rejected; type survives only as the prior for unclassified actions (§5.7).
 
@@ -306,7 +308,7 @@ On acceptance, the values move to top-level constants (`GAIN_RATE_MIN`, `GAIN_RA
 
 ## 12. Open questions
 
-1. Rate bounds: [0.05, 0.25] (recommended) or [0.01, 0.05]?
+1. ~~Rate bounds~~: **resolved 2026-11-21, [0.05, 0.25].** [0.01, 0.05] stays recorded under §11.
 2. Is severe-failure demotion at `P(T) × R ≥ 120` the right threshold, or should any CRITICAL failure demote regardless of tier?
 3. Should `evidenceMinSuccesses` scale with level (for example, fewer required at CRITICAL, where volume is naturally low)?
 4. Should volume normalisation be per level (as drafted) or across all levels combined?
